@@ -3,6 +3,7 @@
 **Table of Contents**
 
 * [Installation](#installation)
+  * [Composer](#composer) 
 * [Configuration](#configuration)
 * [Usage](#usage)
 * [Dependencies](#dependencies)
@@ -18,6 +19,15 @@
    2. Actions/Refresh Languages
    3. Actions/Activate
 
+#### Composer
+
+After the plugin files have been installed as described above,
+please install the [`composer`](https://getcomposer.org/) dependencies:
+
+```bash
+cd Customizing/global/plugins/Services/Cron/CronHook/PowerBiReportingProvider
+composer install --no-dev
+```
 
 ## Configuration
 
