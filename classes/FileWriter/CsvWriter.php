@@ -1,7 +1,24 @@
 <?php
-/* Copyright (c) 1998-2011 ILIAS open source, Extended GPL, see docs/LICENSE */
+
+/**
+ * This file is part of ILIAS, a powerful learning management system
+ * published by ILIAS open source e-Learning e.V.
+ *
+ * ILIAS is licensed with the GPL-3.0,
+ * see https://www.gnu.org/licenses/gpl-3.0.en.html
+ * You should have received a copy of said license along with the
+ * source code, too.
+ *
+ * If this is not the case or you just want to try ILIAS, you'll find
+ * us at:
+ * https://www.ilias.de
+ * https://github.com/ILIAS-eLearning
+ *
+ *********************************************************************/
 
 namespace QU\PowerBiReportingProvider\FileWriter;
+
+use Exception;
 
 /**
  * Class CsvWriter
@@ -10,144 +27,124 @@ namespace QU\PowerBiReportingProvider\FileWriter;
  */
 class CsvWriter
 {
-	/** @var string  */
-	private $file_path;
-	/** @var resource  */
-	private $buffer;
-	/** @var array  */
-	private $fields;
-	/** @var array  */
-	private $data;
+    private string $file_path;
+    /** @var resource|false */
+    private $buffer;
+    /** @var list<string> */
+    private array $fields;
+    /** @var list<list<string>> */
+    private array $data;
 
-	/**
-	 * CsvWriter constructor.
-	 * @param string $file_path
-	 */
-	public function __construct(string $file_path)
-	{
-		$this->file_path = $file_path;
-		$this->buffer = null;
-		$this->fields = [];
-		$this->data = [];
-	}
+    public function __construct(string $file_path)
+    {
+        $this->file_path = $file_path;
+        $this->fields = [];
+        $this->data = [];
+    }
 
-	/**
-	 * @param array $fields
-	 * @return $this
-	 * @throws \Exception
-	 */
-	public function setFields(array $fields)
-	{
-		if (!empty($this->fields)) {
-			throw new \Exception('CSV fields are already set.');
-		}
-		$this->fields = $fields;
-		return $this;
-	}
+    /**
+     * @param list<string> $fields
+     */
+    public function setFields(array $fields): self
+    {
+        if (!empty($this->fields)) {
+            throw new Exception('CSV fields are already set.');
+        }
 
-	/**
-	 * @param array $data
-	 * @return $this
-	 * @throws \Exception
-	 */
-	public function setData(array $data)
-	{
-		$this->data = [];
-		foreach ($data as $row) {
-			if (!is_array($row)) {
-				throw new \Exception('Given data is invalid. Expected array, got ' . gettype($row) . '.');
-			}
-			if ( ($rcount = count($row)) != ($fcount = count($this->fields)) ) {
-				throw new \Exception('Given data is invalid. Expected ' . $fcount . ' fields but got ' . $rcount . '.');
-			}
-			$this->data[] = $row;
-		}
-		return $this;
-	}
+        $this->fields = $fields;
+        return $this;
+    }
 
-	/**
-	 * @param array $row
-	 * @return $this
-	 * @throws \Exception
-	 */
-	public function addRow(array $row)
-	{
-		if ( ($rcount = count($row)) != ($fcount = count($this->fields)) ) {
-			throw new \Exception('Given data is invalid. Expected ' . $fcount . ' fields but got ' . $rcount . '.');
-		}
-		$this->data[] = $row;
-		return $this;
-	}
+    /**
+     * @param list<list<string>> $data
+     */
+    public function setData(array $data): self
+    {
+        $this->data = [];
+        foreach ($data as $row) {
+            if (!is_array($row)) {
+                throw new Exception('Given data is invalid. Expected array, got ' . gettype($row) . '.');
+            }
+            if (($rcount = count($row)) !== ($fcount = count($this->fields))) {
+                throw new Exception('Given data is invalid. Expected ' . $fcount . ' fields but got ' . $rcount . '.');
+            }
+            $this->data[] = $row;
+        }
 
-	/**
-	 * @return bool
-	 * @throws \Exception
-	 */
-	public function writeCsv()
-	{
-		if ($this->file_path === '') {
-			throw new \Exception('No file path given.');
-		}
-		if (empty($this->fields)) {
-			throw new \Exception('No fields defined.');
-		}
-		if (empty($this->data)) {
-			throw new \Exception('Cannot write empty data.');
-		}
+        return $this;
+    }
 
-		$this->openFile();
-		$this->writeRow($this->fields);
-		foreach ($this->data as $row) {
-			if(false === $this->writeRow($row)) {
-				$this->closeFile();
-				throw new \Exception('Could not write all data. Stopped process.');
-			}
-		}
+    /**
+     * @param list<string> $row
+     */
+    public function addRow(array $row): self
+    {
+        if (($rcount = count($row)) !== ($fcount = count($this->fields))) {
+            throw new Exception('Given data is invalid. Expected ' . $fcount . ' fields but got ' . $rcount . '.');
+        }
+        $this->data[] = $row;
 
-		return $this->closeFile();
-	}
+        return $this;
+    }
 
-	/**
-	 * @param array $row
-	 * @return bool|int
-	 */
-	private function writeRow(array $row)
-	{
-		return fputcsv($this->buffer, $row, chr(124));
-	}
+    public function writeCsv(): bool
+    {
+        if ($this->file_path === '') {
+            throw new Exception('No file path given.');
+        }
 
-	/**
-	 * @return void
-	 * @throws \Exception
-	 */
-	private function openFile()
-	{
-		$fnpos = strrpos($this->file_path, chr(47));
-		$dir_path = substr($this->file_path, 0, $fnpos);
-		$filename = substr($this->file_path, ($fnpos + 1));
+        if (empty($this->fields)) {
+            throw new Exception('No fields defined.');
+        }
 
-		if (file_exists($this->file_path)) {
-//			throw new \Exception('File (' . $filename . ') already exists at ' . $dir_path . '.');
-			global $DIC;
-			$DIC->logger()->root()->debug('Writing to existing file: ' . $this->file_path);
-		}
-		if (!is_dir($dir_path)) {
-			if (false === mkdir($dir_path, 0755, true)) {
-				throw new \Exception('Directory (' . $dir_path . ') does not exist and cannot be created.');
-			}
-		}
+        if (empty($this->data)) {
+            throw new Exception('Cannot write empty data.');
+        }
 
-		$this->buffer = @fopen($this->file_path, 'a');
-		if (!is_resource($this->buffer) || $this->buffer === false) {
-			throw new \Exception('Cannot create file for writing.');
-		}
-	}
+        $this->openFile();
+        $this->writeRow($this->fields);
+        foreach ($this->data as $row) {
+            if (false === $this->writeRow($row)) {
+                $this->closeFile();
+                throw new Exception('Could not write all data. Stopped process.');
+            }
+        }
 
-	/**
-	 * @return bool
-	 */
-	private function closeFile()
-	{
-		return @fclose($this->buffer);
-	}
+        return $this->closeFile();
+    }
+
+    /**
+     * @param list<string> $row
+     * @return false|int
+     */
+    private function writeRow(array $row)
+    {
+        return fputcsv($this->buffer, $row, chr(124));
+    }
+
+    private function openFile(): void
+    {
+        $fnpos = strrpos($this->file_path, chr(47));
+        $dir_path = substr($this->file_path, 0, $fnpos);
+        $filename = substr($this->file_path, ($fnpos + 1));
+
+        if (!is_dir($dir_path) && !mkdir($dir_path, 0755, true) && !is_dir($dir_path)) {
+            throw new Exception('Directory (' . $dir_path . ') does not exist and cannot be created.');
+        }
+
+        $this->buffer = fopen($this->file_path, 'ab');
+        if (!is_resource($this->buffer) || $this->buffer === false) {
+            throw new Exception('Cannot create file for writing.');
+        }
+    }
+
+    private function closeFile(): bool
+    {
+        $status = false;
+        if (is_resource($this->buffer)) {
+            $status = fclose($this->buffer);
+        }
+
+        return $status;
+    }
 }

@@ -1,108 +1,99 @@
 <?php
-/* Copyright (c) 1998-2019 ILIAS open source, Extended GPL, see docs/LICENSE */
+
+/**
+ * This file is part of ILIAS, a powerful learning management system
+ * published by ILIAS open source e-Learning e.V.
+ *
+ * ILIAS is licensed with the GPL-3.0,
+ * see https://www.gnu.org/licenses/gpl-3.0.en.html
+ * You should have received a copy of said license along with the
+ * source code, too.
+ *
+ * If this is not the case or you just want to try ILIAS, you'll find
+ * us at:
+ * https://www.ilias.de
+ * https://github.com/ILIAS-eLearning
+ *
+ *********************************************************************/
+
+declare(strict_types=1);
 
 namespace QU\PowerBiReportingProvider\Logging\Writer;
 
 use QU\PowerBiReportingProvider\Logging;
+use ilLogLevel;
+use ilLogger;
 
-require_once 'Services/Calendar/classes/class.ilDateTime.php';
-
-/**
- * Class ILIAS
- * @author Michael Jansen <mjansen@databay.de>
- */
-class Ilias extends Base
+class ILIAS extends Base
 {
-	/** @var \ilLogger */
-	protected $aggregatedLogger;
+    private ilLogger $aggregatedLogger;
+    private int $logLevel;
+    private Logging\TraceProcessor $processor;
+    protected bool $shutdown_handled = false;
 
-	/** @var string */
-	private $logLevel;
+    public function __construct(ilLogger $log, int $logLevel)
+    {
+        $this->aggregatedLogger = $log;
+        $this->logLevel = $logLevel;
 
-	/** @var Logging\TraceProcessor */
-	protected $processor;
+        $this->processor = new Logging\TraceProcessor(ilLogLevel::DEBUG);
+    }
 
-	/**
-	 * @var bool
-	 */
-	protected $shutdown_handled = false;
+    protected function doWrite(array $message): void
+    {
+        $line = $message['message'];
 
-	/**
-	 * ILIAS constructor.
-	 * @param \ilLogger $log
-	 * @param $logLevel
-	 */
-	public function __construct(\ilLogger $log, $logLevel)
-	{
-		$this->aggregatedLogger = $log;
-		$this->logLevel = $logLevel;
+        switch ($message['priority']) {
+            case Logging\Logger::EMERG:
+                $method = 'emergency';
+                break;
 
-		$this->processor = new Logging\TraceProcessor(\ilLogLevel::DEBUG);
-	}
+            case Logging\Logger::ALERT:
+                $method = 'alert';
+                break;
 
-	/**
-	 * @param array $message
-	 * @return void
-	 */
-	protected function doWrite(array $message)
-	{
-		$line = $message['message'];
+            case Logging\Logger::CRIT:
+                $method = 'critical';
+                break;
 
-		switch ($message['priority']) {
-			case Logging\Logger::EMERG:
-				$method = 'emergency';
-				break;
+            case Logging\Logger::ERR:
+                $method = 'error';
+                break;
 
-			case Logging\Logger::ALERT:
-				$method = 'alert';
-				break;
+            case Logging\Logger::WARN:
+                $method = 'warning';
+                break;
 
-			case Logging\Logger::CRIT:
-				$method = 'critical';
-				break;
+            case Logging\Logger::INFO:
+                $method = 'info';
+                break;
 
-			case Logging\Logger::ERR:
-				$method = 'error';
-				break;
+            case Logging\Logger::NOTICE:
+                $method = 'notice';
+                break;
 
-			case Logging\Logger::WARN:
-				$method = 'warning';
-				break;
+            case Logging\Logger::DEBUG:
+            default:
+                $method = 'debug';
+                break;
+        }
 
-			case Logging\Logger::INFO:
-				$method = 'info';
-				break;
+        $poppedProcessors = [];
+        while ($this->aggregatedLogger->getLogger()->getProcessors() !== []) {
+            $processor = $this->aggregatedLogger->getLogger()->popProcessor();
+            $poppedProcessors[] = $processor;
+        }
+        $this->aggregatedLogger->getLogger()->pushProcessor($this->processor);
+        $this->aggregatedLogger->{$method}($line);
+        $this->aggregatedLogger->getLogger()->popProcessor();
+        foreach (array_reverse($poppedProcessors) as $processor) {
+            $this->aggregatedLogger->getLogger()->pushProcessor($processor);
+        }
+    }
 
-			case Logging\Logger::NOTICE:
-				$method = 'notice';
-				break;
-
-			case Logging\Logger::DEBUG:
-			default:
-				$method = 'debug';
-				break;
-		}
-
-		$poppedProcessors = [];
-		while ($this->aggregatedLogger->getLogger()->getProcessors() !== array()) {
-			$processor = $this->aggregatedLogger->getLogger()->popProcessor();
-			$poppedProcessors[] = $processor;
-		}
-		$this->aggregatedLogger->getLogger()->pushProcessor($this->processor);
-		$this->aggregatedLogger->{$method}($line);
-		$this->aggregatedLogger->getLogger()->popProcessor();
-		foreach (array_reverse($poppedProcessors) as $processor) {
-			$this->aggregatedLogger->getLogger()->pushProcessor($processor);
-		}
-	}
-
-	/**
-	 * @return void
-	 */
-	public function shutdown()
-	{
-		unset($this->aggregatedLogger);
-
-		$this->shutdown_handled = true;
-	}
+    public function shutdown(): void
+    {
+        unset($this->aggregatedLogger);
+        $this->shutdown_handled = true;
+    }
 }

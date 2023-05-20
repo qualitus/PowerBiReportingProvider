@@ -1,214 +1,151 @@
 <?php
-/* Copyright (c) 1998-2019 ILIAS open source, Extended GPL, see docs/LICENSE */
+
+/**
+ * This file is part of ILIAS, a powerful learning management system
+ * published by ILIAS open source e-Learning e.V.
+ *
+ * ILIAS is licensed with the GPL-3.0,
+ * see https://www.gnu.org/licenses/gpl-3.0.en.html
+ * You should have received a copy of said license along with the
+ * source code, too.
+ *
+ * If this is not the case or you just want to try ILIAS, you'll find
+ * us at:
+ * https://www.ilias.de
+ * https://github.com/ILIAS-eLearning
+ *
+ *********************************************************************/
+
+declare(strict_types=1);
 
 namespace QU\PowerBiReportingProvider\Logging;
 
-/**
- * Class Log
- * @package QU\PowerBiReportingProvider\Logging
- */
+use DateTimeZone;
+use DateTimeImmutable;
+use Exception;
+
 class Log implements Logger
 {
-	/**
-	 * @var self
-	 */
-	protected static $instance;
+    /** @var list<Writer> */
+    private array $writer = [];
 
-	/**
-	 * @var Writer[]
-	 */
-	protected $writer = array();
+    public function __construct()
+    {
+    }
 
-	/**
-	 *
-	 */
-	public function __construct()
-	{
-	}
+    public function __destruct()
+    {
+        $this->shutdown();
+    }
 
-	/**
-	 *
-	 */
-	public function __destruct()
-	{
-		$this->shutdown();
-	}
+    public function shutdown(): void
+    {
+        foreach ($this->writer as $writer) {
+            $writer->shutdown();
+        }
+    }
 
-	/**
-	 * {@inheritdoc}
-	 */
-	public function shutdown()
-	{
-		foreach ($this->writer as $writer) {
-			$writer->shutdown();
-		}
-	}
+    /**
+     * @return array<int, string>
+     */
+    public static function getPriorities(): array
+    {
+        return [
+            self::EMERG => 'EMERG',
+            self::ALERT => 'ALERT',
+            self::CRIT => 'CRIT',
+            self::ERR => 'ERR',
+            self::WARN => 'WARN',
+            self::NOTICE => 'NOTICE',
+            self::INFO => 'INFO',
+            self::DEBUG => 'DEBUG',
+        ];
+    }
 
-	/**
-	 * Get singleton instance
-	 * @return self
-	 */
-	public static function getInstance()
-	{
-		if (null !== self::$instance) {
-			return self::$instance;
-		}
+    public function addWriter(Writer $writer, int $priority = 1): void
+    {
+        $this->writer[] = $writer;
+    }
 
-		return (self::$instance = new self());
-	}
+    public function removeWriter(Writer $writer): void
+    {
+        $key = array_search($writer, $this->writer, true);
+        if ($key !== false) {
+            unset($this->writer[$key]);
+        }
+    }
 
-	/**
-	 * @return array
-	 */
-	public static function getPriorities()
-	{
-		return array(
-			self::EMERG  => 'EMERG',
-			self::ALERT  => 'ALERT',
-			self::CRIT   => 'CRIT',
-			self::ERR    => 'ERR',
-			self::WARN   => 'WARN',
-			self::NOTICE => 'NOTICE',
-			self::INFO   => 'INFO',
-			self::DEBUG  => 'DEBUG',
-		);
-	}
+    public function log(int $priority, $message, array $extra = []): void
+    {
+        if ($priority < 0 || ($priority >= count(self::getPriorities()))) {
+            throw new Exception(
+                sprintf(
+                    '$priority must be an integer > 0 and < %d; received %s',
+                    count(self::getPriorities()),
+                    print_r($priority, true)
+                )
+            );
+        }
 
-	/**
-	 * @param Writer $writer
-	 * @param int    $priority
-	 */
-	public function addWriter(Writer $writer, $priority = 1)
-	{
-		$this->writer[] = $writer;
-	}
+        if (is_object($message) && !method_exists($message, '__toString')) {
+            throw new Exception('$message must implement magic __toString() method');
+        }
 
-	/**
-	 * @param Writer $writer
-	 */
-	public function removeWriter(Writer $writer)
-	{
-		$key = \array_search($writer, $this->writer);
-		if ($key !== false) {
-			unset($this->writer[$key]);
-		}
-	}
+        if (is_array($message)) {
+            $message = var_export($message, true);
+        }
 
-	/**
-	 * @param int   $priority
-	 * @param mixed $message
-	 * @param array $extra
-	 * @throws \ilException
-	 */
-	public function log($priority, $message, $extra = array())
-	{
-		if (!\is_int($priority) || ($priority < 0) || ($priority >= \count(self::getPriorities()))) {
-			throw new \ilException(\sprintf('$priority must be an integer > 0 and < %d; received %s',
-				\count(self::getPriorities()),
-				\var_export($priority, 1)
-			));
-		}
+        $timestamp = new DateTimeImmutable('@' . time(), new DateTimeZone('UTC'));
 
-		if (\is_object($message) && !\method_exists($message, '__toString')) {
-			throw new \ilException('$message must implement magic __toString() method');
-		}
+        $priorities = self::getPriorities();
+        foreach ($this->writer as $writer) {
+            $writer->write([
+                'timestamp' => $timestamp,
+                'priority' => $priority,
+                'priorityName' => $priorities[$priority],
+                'message' => (string) $message,
+                'extra' => $extra
+            ]);
+        }
+    }
 
-		if (\is_array($message)) {
-			$message = \var_export($message, true);
-		}
+    public function emerg($message, array $extra = []): void
+    {
+        $this->log(self::EMERG, $message, $extra);
+    }
 
-		require_once 'Services/Calendar/classes/class.ilDateTime.php';
-		$timestamp = new \ilDateTime(\time(), \IL_CAL_UNIX);
+    public function alert($message, array $extra = []): void
+    {
+        $this->log(self::ALERT, $message, $extra);
+    }
 
-		$priorities = self::getPriorities();
-		foreach ($this->writer as $writer) {
-			$writer->write(array(
-				'timestamp'    => $timestamp,
-				'priority'     => (int)$priority,
-				'priorityName' => $priorities[$priority],
-				'message'      => (string)$message,
-				'extra'        => $extra
-			));
-		}
-	}
+    public function crit($message, array $extra = []): void
+    {
+        $this->log(self::CRIT, $message, $extra);
+    }
 
-	/**
-	 * @param string $message
-	 * @param array  $extra
-	 * @return void
-	 */
-	public function emerg($message, $extra = array())
-	{
-		$this->log(self::EMERG, $message, $extra);
-	}
+    public function err($message, array $extra = []): void
+    {
+        $this->log(self::ERR, $message, $extra);
+    }
 
-	/**
-	 * @param string $message
-	 * @param array  $extra
-	 * @return void
-	 */
-	public function alert($message, $extra = array())
-	{
-		$this->log(self::ALERT, $message, $extra);
-	}
+    public function info($message, array $extra = []): void
+    {
+        $this->log(self::INFO, $message, $extra);
+    }
 
-	/**
-	 * @param string $message
-	 * @param array  $extra
-	 * @return void
-	 */
-	public function crit($message, $extra = array())
-	{
-		$this->log(self::CRIT, $message, $extra);
-	}
+    public function warn($message, array $extra = []): void
+    {
+        $this->log(self::WARN, $message, $extra);
+    }
 
-	/**
-	 * @param string $message
-	 * @param array  $extra
-	 * @return void
-	 */
-	public function err($message, $extra = array())
-	{
-		$this->log(self::ERR, $message, $extra);
-	}
+    public function notice($message, array $extra = []): void
+    {
+        $this->log(self::NOTICE, $message, $extra);
+    }
 
-	/**
-	 * @param string $message
-	 * @param        array
-	 * @return void
-	 */
-	public function info($message, $extra = array())
-	{
-		$this->log(self::INFO, $message, $extra);
-	}
-
-	/**
-	 * @param string $message
-	 * @param array  $extra
-	 * @return void
-	 */
-	public function warn($message, $extra = array())
-	{
-		$this->log(self::WARN, $message, $extra);
-	}
-
-	/**
-	 * @param string $message
-	 * @param array  $extra
-	 * @return void
-	 */
-	public function notice($message, $extra = array())
-	{
-		$this->log(self::NOTICE, $message, $extra);
-	}
-
-	/**
-	 * @param string $message
-	 * @param array  $extra
-	 * @return void
-	 */
-	public function debug($message, $extra = array())
-	{
-		$this->log(self::DEBUG, $message, $extra);
-	}
+    public function debug($message, array $extra = []): void
+    {
+        $this->log(self::DEBUG, $message, $extra);
+    }
 }

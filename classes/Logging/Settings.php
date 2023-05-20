@@ -1,136 +1,97 @@
 <?php
-/* Copyright (c) 1998-2019 ILIAS open source, Extended GPL, see docs/LICENSE */
+
+/**
+ * This file is part of ILIAS, a powerful learning management system
+ * published by ILIAS open source e-Learning e.V.
+ *
+ * ILIAS is licensed with the GPL-3.0,
+ * see https://www.gnu.org/licenses/gpl-3.0.en.html
+ * You should have received a copy of said license along with the
+ * source code, too.
+ *
+ * If this is not the case or you just want to try ILIAS, you'll find
+ * us at:
+ * https://www.ilias.de
+ * https://github.com/ILIAS-eLearning
+ *
+ *********************************************************************/
+
+declare(strict_types=1);
 
 namespace QU\PowerBiReportingProvider\Logging;
 
-require_once './Services/Logging/classes/public/class.ilLogLevel.php';
-require_once './Services/Logging/interfaces/interface.ilLoggingSettings.php';
+use ilLogLevel;
+use ilLoggingSettings;
 
-/**
- * Class Settings
- * @package QU\PowerBiReportingProvider\Logging
- */
-class Settings implements \ilLoggingSettings
+class Settings implements ilLoggingSettings
 {
-	/**
-	 * @var null|self
-	 */
-	protected static $instance = null;
+    private int $level ;
+    private int $cache_level;
+    private string $directory;
+    private string $file;
+    private bool $cache = false;
 
-	private $level = null;
-	private $cache = false;
-	private $cache_level = null;
+    public function __construct(string $directory, string $file, int $logLevel = ilLogLevel::INFO)
+    {
+        $this->level = $logLevel;
+        $this->cache_level = ilLogLevel::DEBUG;
 
-	/**
-	 * @var string
-	 */
-	protected $directory = '';
+        $this->directory = $directory;
+        $this->file = $file;
+    }
 
-	/**
-	 * @var string
-	 */
-	protected $file = '';
+    public function getLevelByComponent(string $a_component_id): int
+    {
+        return $this->getLevel();
+    }
 
-	/**
-	 * Settings constructor.
-	 * @param string $directory
-	 * @param string $file
-	 * @param int $logLevel
-	 */
-	public function __construct($directory, $file, $logLevel = \ilLogLevel::INFO)
-	{
-		$this->level       = $logLevel;
-		$this->cache_level = \ilLogLevel::DEBUG;
+    public function isEnabled(): bool
+    {
+        return true;
+    }
 
-		$this->directory = $directory;
-		$this->file      = $file;
-	}
+    public function getLogDir(): string
+    {
+        return $this->directory;
+    }
 
-	/**
-	 * @inheritdoc
-	 */
-	public function getLevelByComponent($a_component_id)
-	{
-		return $this->getLevel();
-	}
+    public function getLogFile(): string
+    {
+        return $this->file;
+    }
 
-	/**
-	 * @inheritdoc
-	 */
-	public function isEnabled()
-	{
-		return true;
-	}
+    public function getLevel(): int
+    {
+        return $this->level;
+    }
 
-	/**
-	 * @inheritdoc
-	 */
-	public function getLogDir()
-	{
-		return $this->directory;
-	}
+    public function getCacheLevel(): int
+    {
+        return $this->cache_level;
+    }
 
-	/**
-	 * @inheritdoc
-	 */
-	public function getLogFile()
-	{
-		return $this->file;
-	}
+    public function isCacheEnabled(): bool
+    {
+        return $this->cache;
+    }
 
-	/**
-	 * @inheritdoc
-	 */
-	public function getLevel()
-	{
-		return $this->level;
-	}
+    public function isMemoryUsageEnabled(): bool
+    {
+        return true;
+    }
 
-	/**
-	 * @inheritdoc
-	 */
-	public function getCacheLevel()
-	{
-		return $this->cache_level;
-	}
+    public function isBrowserLogEnabled(): bool
+    {
+        return false;
+    }
 
-	/**
-	 * @inheritdoc
-	 */
-	public function isCacheEnabled()
-	{
-		return $this->cache;
-	}
+    public function isBrowserLogEnabledForUser(string $a_login): bool
+    {
+        return false;
+    }
 
-	/**
-	 * @inheritdoc
-	 */
-	public function isMemoryUsageEnabled()
-	{
-		return true;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function isBrowserLogEnabled()
-	{
-		return false;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function isBrowserLogEnabledForUser($a_login)
-	{
-		return false;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function getBrowserLogUsers()
-	{
-		return array();
-	}
+    public function getBrowserLogUsers(): array
+    {
+        return [];
+    }
 }

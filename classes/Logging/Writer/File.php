@@ -1,93 +1,95 @@
 <?php
-/* Copyright (c) 1998-2019 ILIAS open source, Extended GPL, see docs/LICENSE */
+
+/**
+ * This file is part of ILIAS, a powerful learning management system
+ * published by ILIAS open source e-Learning e.V.
+ *
+ * ILIAS is licensed with the GPL-3.0,
+ * see https://www.gnu.org/licenses/gpl-3.0.en.html
+ * You should have received a copy of said license along with the
+ * source code, too.
+ *
+ * If this is not the case or you just want to try ILIAS, you'll find
+ * us at:
+ * https://www.ilias.de
+ * https://github.com/ILIAS-eLearning
+ *
+ *********************************************************************/
+
+declare(strict_types=1);
 
 namespace QU\PowerBiReportingProvider\Logging\Writer;
 
 use QU\PowerBiReportingProvider\Logging;
+use ilLogLevel;
+use ilLoggerFactory;
+use ilLogger;
+use ReflectionClass;
 
-require_once 'Services/Calendar/classes/class.ilDateTime.php';
-
-/**
- * Class File
- * @author Michael Jansen <mjansen@databay.de>
- */
 class File extends Base
 {
-	/**
-	 * @var \ilLogger
-	 */
-	protected $aggregated_logger;
+    private ilLogger $aggregated_logger;
 
-	/**
-	 * @var bool
-	 */
-	protected $shutdown_handled = false;
+    public function __construct(Logging\Settings $settings)
+    {
+        $coreLoggingFactory = ilLoggerFactory::getInstance();
 
-	/**
-	 * File constructor.
-	 * @param Logging\Settings $settings
-	 */
-	public function __construct(Logging\Settings $settings)
-	{
-		$factory                 = \ilLoggerFactory::newInstance($settings);
-		$this->aggregated_logger = $factory->getComponentLogger('PowerBiReportingProvider');
-		$this->aggregated_logger->getLogger()->popProcessor();
-		$this->aggregated_logger->getLogger()->pushProcessor(new Logging\TraceProcessor(\ilLogLevel::DEBUG));
-	}
+        $factory = ilLoggerFactory::newInstance($settings);
+        $this->aggregated_logger = $factory->getComponentLogger('PowerBiReportingProvider');
 
-	/**
-	 * @param array $message
-	 * @return void
-	 */
-	protected function doWrite(array $message)
-	{
-		$line = $message['message'];
+        $loggerFactoryRefl = new ReflectionClass(ilLoggerFactory::class);
+        $loggerFactoryInstance = $loggerFactoryRefl->getProperty('instance');
+        $loggerFactoryInstance->setAccessible(true);
+        $loggerFactoryInstance->setValue($coreLoggingFactory);
 
-		switch ($message['priority']) {
-			case Logging\Logger::EMERG:
-				$method = 'emergency';
-				break;
+        $this->aggregated_logger->getLogger()->popProcessor();
+        $this->aggregated_logger->getLogger()->pushProcessor(new Logging\TraceProcessor(ilLogLevel::DEBUG));
+    }
 
-			case Logging\Logger::ALERT:
-				$method = 'alert';
-				break;
+    protected function doWrite(array $message): void
+    {
+        $line = $message['message'];
 
-			case Logging\Logger::CRIT:
-				$method = 'critical';
-				break;
+        switch ($message['priority']) {
+            case Logging\Logger::EMERG:
+                $method = 'emergency';
+                break;
 
-			case Logging\Logger::ERR:
-				$method = 'error';
-				break;
+            case Logging\Logger::ALERT:
+                $method = 'alert';
+                break;
 
-			case Logging\Logger::WARN:
-				$method = 'warning';
-				break;
+            case Logging\Logger::CRIT:
+                $method = 'critical';
+                break;
 
-			case Logging\Logger::INFO:
-				$method = 'info';
-				break;
+            case Logging\Logger::ERR:
+                $method = 'error';
+                break;
 
-			case Logging\Logger::NOTICE:
-				$method = 'notice';
-				break;
+            case Logging\Logger::WARN:
+                $method = 'warning';
+                break;
 
-			case Logging\Logger::DEBUG:
-			default:
-				$method = 'debug';
-				break;
-		}
+            case Logging\Logger::INFO:
+                $method = 'info';
+                break;
 
-		$this->aggregated_logger->{$method}($line);
-	}
+            case Logging\Logger::NOTICE:
+                $method = 'notice';
+                break;
 
-	/**
-	 * @return void
-	 */
-	public function shutdown()
-	{
-		unset($this->aggregated_logger);
+            case Logging\Logger::DEBUG:
+            default:
+                $method = 'debug';
+                break;
+        }
 
-		$this->shutdown_handled = true;
-	}
+        $this->aggregated_logger->{$method}($line);
+    }
+
+    public function shutdown(): void
+    {
+        unset($this->aggregated_logger);
+    }
 }
