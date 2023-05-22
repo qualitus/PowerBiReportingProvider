@@ -100,7 +100,7 @@ abstract class DataObject implements DataObjectInterface
      *
      * @param list<string> $fields Array of fields
      * @param list<string> $types Array of field types
-     * @param list<mixed> $values Array of values to save
+     * @param list<scalar> $values Array of values to save
      */
     final protected function _create(array $fields, array $types, array $values): bool
     {
@@ -121,7 +121,7 @@ abstract class DataObject implements DataObjectInterface
      * Update an entry in database
      * @param list<string> $fields Array of fields
      * @param list<string> $types Array of field types
-     * @param list<mixed> $values Array of values to save
+     * @param list<scalar> $values Array of values to save
      */
     final protected function _update(array $fields, array $types, array $values, int $whereIndex): bool
     {
