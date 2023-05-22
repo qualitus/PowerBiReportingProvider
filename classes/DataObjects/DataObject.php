@@ -18,36 +18,29 @@
 
 namespace QU\PowerBiReportingProvider\DataObjects;
 
+use ilDBConstants;
 use ilDBInterface;
 
 abstract class DataObject implements DataObjectInterface
 {
     /**
      * Table name for DataObject
-     *
      * You MUST set this parameter inside your
      * DataObject to define the table name.
-     *
-     * @var string
      */
     protected string $use_table;
 
     /**
      * ID field in database table
-     *
      * This is used as index.
      * You MUST set this parameter inside your
      * DataObject to define the table index field.
-     *
-     * @var string
      */
     protected string $use_index;
 
     private ilDBInterface $database;
 
     /**
-     * DataObject constructor.
-     *
      * If you override this function, you SHOULD use
      * the parent::__construct at the beginning of
      * your own constructor.
@@ -55,6 +48,7 @@ abstract class DataObject implements DataObjectInterface
     public function __construct()
     {
         global $DIC;
+
         $this->database = $DIC->database();
     }
 
@@ -68,9 +62,7 @@ abstract class DataObject implements DataObjectInterface
 
     /**
      * Load all entries from database
-     *
      * This is not recommended. You should use _loadById() instead.
-     *
      * @return list<array<string, mixed>>
      */
     final protected function _load(): array
@@ -84,33 +76,31 @@ abstract class DataObject implements DataObjectInterface
 
     /**
      * Load a specific entry be its ID
-     *
      * This is the recommended function to load the data
      * into your object. Just use this function inside
      * your objects __construct() and assign the returned
      * data to your objects parameters.
-     *
-     * @param int $id			Entry ID from $use_index field
-     * @return null|array<string, mixed>			Array with database values like [ field_name => field_value ]
+     * @param int $id Entry ID from $use_index field
+     * @return null|array<string, mixed> Array with database values like [ field_name => field_value ]
      */
     final protected function _loadById(int $id): ?array
     {
         $select = 'SELECT * FROM `' . $this->use_table . '` WHERE ' . $this->use_index . ' = ' .
-            $this->database->quote($id, 'integer');
+            $this->database->quote($id, ilDBConstants::T_INTEGER);
 
         $result = $this->database->query($select);
 
         $res = $this->database->fetchAll($result);
+
         return $res[0] ?? null;
     }
 
     /**
      * Create a new entry in database
      *
-     * @param array $fields		Array of fields
-     * @param array $types		Array of field types
-     * @param array $values		Array of values to save
-     * @return bool
+     * @param list<string> $fields Array of fields
+     * @param list<string> $types Array of field types
+     * @param list<mixed> $values Array of values to save
      */
     final protected function _create(array $fields, array $types, array $values): bool
     {
@@ -124,17 +114,14 @@ abstract class DataObject implements DataObjectInterface
             $values
         );
 
-        return ($res === false);
+        return $res > 0;
     }
 
     /**
      * Update an entry in database
-     *
-     * @param array $fields		Array of fields
-     * @param array $types		Array of field types
-     * @param array $values		Array of values to save
-     * @param int $whereIndex	Entry ID from $use_index field
-     * @return bool
+     * @param list<string> $fields Array of fields
+     * @param list<string> $types Array of field types
+     * @param list<mixed> $values Array of values to save
      */
     final protected function _update(array $fields, array $types, array $values, int $whereIndex): bool
     {
@@ -148,15 +135,9 @@ abstract class DataObject implements DataObjectInterface
             $values
         );
 
-        return ($res === false);
+        return $res > 0;
     }
 
-    /**
-     * Delete an entry from database
-     *
-     * @param int $whereIndex	Entry ID from $use_index field
-     * @return bool
-     */
     final protected function _delete(int $whereIndex): bool
     {
 
@@ -165,6 +146,6 @@ abstract class DataObject implements DataObjectInterface
 
         $res = $this->database->manipulate($query);
 
-        return ($res === false);
+        return $res > 0;
     }
 }

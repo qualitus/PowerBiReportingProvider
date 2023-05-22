@@ -40,9 +40,6 @@ interface DataObjectInterface
      *         return false;
      *     }
      * }
-     *
-     * @param int|null $id	Entry ID
-     * @return bool
      */
     public function load(int $id = null): bool;
 
@@ -78,9 +75,6 @@ interface DataObjectInterface
      *         return $this->_create($fields, $types, $values);
      *     }
      * }
-     *
-     *
-     * @return bool
      */
     public function save(): bool;
 
@@ -98,8 +92,6 @@ interface DataObjectInterface
      *     }
      *     @return false;
      * }
-     *
-     * @return bool
      */
     public function remove(): bool;
 }

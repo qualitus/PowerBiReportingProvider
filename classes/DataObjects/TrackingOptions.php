@@ -222,7 +222,7 @@ class TrackingOptions
                         if (!$tOption->load($option['id'])) {
                             $tOption->setId($option['id'])
                                 ->setKeyword($option['keyword'])
-                                ->setActive($option['active'] == true)
+                                ->setActive((int) $option['active'] === 1)
                                 ->setFieldName($option['field_name'])
                                 ->setUpdatedAt($option['updated_at']);
                         }
@@ -231,8 +231,9 @@ class TrackingOptions
 
                     } catch (Exception $e) {
                         $load_status = false;
-                        $logger->warn('failure while loading option for ' . $option['keyword'] .
-                            ': ' . $e->getMessage());
+                        $logger->warn(
+                            'failure while loading option for ' . $option['keyword'] . ': ' . $e->getMessage()
+                        );
                     }
                 }
             }
