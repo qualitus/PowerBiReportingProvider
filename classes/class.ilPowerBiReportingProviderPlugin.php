@@ -36,7 +36,7 @@ class ilPowerBiReportingProviderPlugin extends \ilCronHookPlugin
     public const PLUGIN_SETTINGS = 'qu_crnhk_powbi_rep_prov';
     public const PLUGIN_NS = 'QU\PowerBiReportingProvider';
 
-    private static ?ilPowerBiReportingProviderPlugin $instance = null;
+    private static ?self $instance = null;
     /** @var array<string, array<string, array<string, bool>>> */
     private static array $activePluginsCheckCache = [];
     /** @var array<string, array<string, array<string, ilPlugin>>> */
