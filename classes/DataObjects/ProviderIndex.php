@@ -25,16 +25,12 @@ class ProviderIndex extends DataObject
     protected string $use_table = 'powbi_prov_index';
     protected string $use_index = 'id';
 
-    /** @var int */
-    private $id;
-    /** @var int */
-    private $processed;
-    /** @var string */
-    private $trigger;
-    /** @var int */
-    private $timestamp;
+    private ?int $id = null;
+    private int $processed = 0;
+    private ?string $trigger = null;
+    private ?int $timestamp = null;
 
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
@@ -44,7 +40,7 @@ class ProviderIndex extends DataObject
         return $this->processed;
     }
 
-    public function setProcessed(int $processed): ProviderIndex
+    public function setProcessed(int $processed): self
     {
         $this->processed = $processed;
         return $this;
@@ -55,7 +51,7 @@ class ProviderIndex extends DataObject
         return $this->trigger;
     }
 
-    public function setTrigger(string $trigger): ProviderIndex
+    public function setTrigger(string $trigger): self
     {
         $this->trigger = $trigger;
         return $this;
@@ -66,7 +62,7 @@ class ProviderIndex extends DataObject
         return $this->timestamp;
     }
 
-    public function setTimestamp(int $timestamp): ProviderIndex
+    public function setTimestamp(int $timestamp): self
     {
         $this->timestamp = $timestamp;
         return $this;
@@ -74,18 +70,18 @@ class ProviderIndex extends DataObject
 
     public function load(int $id = null): bool
     {
-        if (isset($id)) {
+        if (is_int($id) && $id > 0) {
             $data = $this->_loadById($id);
         } else {
             $data = $this->_load();
             $data = end($data);
         }
 
-        if (!empty($data)) {
-            $this->id = $data['id'];
-            $this->setProcessed($data['processed']);
+        if (is_array($data) && $data !== []) {
+            $this->id = (int) $data['id'];
+            $this->setProcessed((int) $data['processed']);
             $this->setTrigger($data['trigger']);
-            $this->setTimestamp($data['timestamp']);
+            $this->setTimestamp((int) $data['timestamp']);
             return true;
         }
 
@@ -104,16 +100,23 @@ class ProviderIndex extends DataObject
             ilDBConstants::T_INTEGER,
             ilDBConstants::T_TEXT,
             ilDBConstants::T_INTEGER,
-            ilDBConstants::T_INTEGER,
+            ilDBConstants::T_INTEGER
         ];
+
+        $id = $this->getNextId();
         $values = [
             $this->getProcessed(),
             $this->getTrigger(),
             $this->getTimestamp(),
-            $this->getNextId(),
+            $id
         ];
 
-        return $this->_create($fields, $types, $values);
+        $status = $this->_create($fields, $types, $values);
+        if ($status) {
+            $this->id = $id;
+        }
+
+        return $status;
     }
 
     public function remove(): bool
