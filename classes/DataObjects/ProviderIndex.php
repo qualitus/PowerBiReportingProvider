@@ -46,7 +46,7 @@ class ProviderIndex extends DataObject
         return $this;
     }
 
-    public function getTrigger(): string
+    public function getTrigger(): ?string
     {
         return $this->trigger;
     }
@@ -57,7 +57,7 @@ class ProviderIndex extends DataObject
         return $this;
     }
 
-    public function getTimestamp(): int
+    public function getTimestamp(): ?int
     {
         return $this->timestamp;
     }
