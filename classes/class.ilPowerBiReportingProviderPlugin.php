@@ -131,6 +131,8 @@ class ilPowerBiReportingProviderPlugin extends \ilCronHookPlugin
 
     private function registerAutoloader(): void
     {
+        require_once __DIR__ . '/../vendor/autoload.php';
+
         if (!isset($this->dic['autoload.lc.lcautoloader'])) {
             $Autoloader = new LCAutoloader();
             $Autoloader->register();
