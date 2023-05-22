@@ -54,16 +54,15 @@ abstract class Base implements Logging\Writer
     {
         $output = self::DEFAULT_FORMAT;
         foreach ($message as $part => $value) {
-            if ('extra' === $part && count($value)) {
+            if ('extra' === $part && (is_countable($value) && count($value) > 0)) {
                 $value = $this->normalize($value);
+            } elseif ('extra' === $part) {
+                // Don't print an empty array
+                $value = '';
             } else {
-                if ('extra' === $part) {
-                    // Don't print an empty array
-                    $value = '';
-                } else {
-                    $value = $this->normalize($value);
-                }
+                $value = $this->normalize($value);
             }
+
             $output = str_replace("%$part%", (string) $value, $output);
         }
 

@@ -87,15 +87,15 @@ class ilPowerBiReportingProviderPlugin extends \ilCronHookPlugin
         $this->registerAutoloader();
 
         if (!isset($this->dic['plugin.powbi.export.logger.writer.ilias'])) {
-            $this->dic['plugin.powbi.export.logger.writer.ilias'] = static function (Pimple\Container $c): \QU\PowerBiReportingProvider\Logging\Writer {
+            $this->dic['plugin.powbi.export.logger.writer.ilias'] = static function (Container $c): \QU\PowerBiReportingProvider\Logging\Writer {
                 $logLevel = ilLoggingDBSettings::getInstance()->getLevel();
 
-                return new Ilias($c['ilLog'], $logLevel);
+                return new Ilias($c->logger()->root(), $logLevel);
             };
         }
 
         if (!isset($this->dic['plugin.powbi.export.cronjob.logger'])) {
-            $this->dic['plugin.powbi.export.cronjob.logger'] = static function (Pimple\Container $c): \QU\PowerBiReportingProvider\Logging\Logger {
+            $this->dic['plugin.powbi.export.cronjob.logger'] = static function (Container $c): \QU\PowerBiReportingProvider\Logging\Logger {
                 $logger = new Log();
 
                 $logger->addWriter(new StdOut());
@@ -112,7 +112,7 @@ class ilPowerBiReportingProviderPlugin extends \ilCronHookPlugin
         }
 
         if (!isset($this->dic['plugin.powbi.export.web.logger'])) {
-            $this->dic['plugin.powbi.export.web.logger'] = static function (Pimple\Container $c): \QU\PowerBiReportingProvider\Logging\Logger {
+            $this->dic['plugin.powbi.export.web.logger'] = static function (Container $c): \QU\PowerBiReportingProvider\Logging\Logger {
                 $logger = new Log();
 
                 $logger->addWriter($c['plugin.powbi.export.logger.writer.ilias']);
@@ -122,27 +122,20 @@ class ilPowerBiReportingProviderPlugin extends \ilCronHookPlugin
         }
 
         if (!isset($this->dic['plugin.powbi.cronjob.locker'])) {
-            $this->dic['plugin.powbi.cronjob.locker'] = function (Pimple\Container $c): \QU\PowerBiReportingProvider\Lock\Locker {
-                return new PidBasedLocker(
-                    new ilSetting($this->getPluginName()),
-                    $c['plugin.powbi.export.cronjob.logger']
-                );
-            };
+            $this->dic['plugin.powbi.cronjob.locker'] = fn (Container $c): \QU\PowerBiReportingProvider\Lock\Locker => new PidBasedLocker(
+                new ilSetting($this->getPluginName()),
+                $c['plugin.powbi.export.cronjob.logger']
+            );
         }
     }
 
     private function registerAutoloader(): void
     {
-        require_once __DIR__ . '/../vendor/autoload.php';
-
         if (!isset($this->dic['autoload.lc.lcautoloader'])) {
-            require_once realpath(__DIR__) . '/Autoload/LCAutoloader.php';
             $Autoloader = new LCAutoloader();
             $Autoloader->register();
             $Autoloader->addNamespace('ILIAS\Plugin', '/Customizing/global/plugins');
-            $this->dic['autoload.lc.lcautoloader'] = static function (\ILIAS\DI\Container $c) use ($Autoloader): LCAutoloader {
-                return $Autoloader;
-            };
+            $this->dic['autoload.lc.lcautoloader'] = static fn (\ILIAS\DI\Container $c): LCAutoloader => $Autoloader;
         }
 
         $this->dic['autoload.lc.lcautoloader']->addNamespace(self::PLUGIN_NS, realpath(__DIR__));

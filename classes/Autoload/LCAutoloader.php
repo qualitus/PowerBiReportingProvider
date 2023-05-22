@@ -16,7 +16,7 @@
  *
  *********************************************************************/
 
-if (class_exists('LCAutoloader')) {
+if (class_exists(\LCAutoloader::class)) {
     return;
 }
 

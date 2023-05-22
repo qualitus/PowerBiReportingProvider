@@ -78,19 +78,22 @@ class ilPowerBiReportingProviderConfigGUI extends ilPluginConfigGUI
             ], 'showPlugin', null, false, false);
 
             if (preg_match('/plugin_id=([^&]+)/i', $link) > 0) {
-                $link = preg_replace_callback('/plugin_id=([^&]+)/i', static function (array $matches) use ($target_plugin_id): string {
-                    return 'plugin_id=' . $target_plugin_id;
-                }, $link);
+                $link = preg_replace_callback(
+                    '/plugin_id=([^&]+)/i',
+                    static fn (array $matches): string => 'plugin_id=' . $target_plugin_id,
+                    $link
+                );
 
             } else {
                 $link .= '&plugin_id=' . $target_plugin_id;
             }
 
             if (preg_match('/pname=([^&]+)/i', $link) > 0) {
-                $link = preg_replace_callback('/pname=([^&]+)/i', static function (array $matches) use ($target_plugin_name): string {
-                    return 'pname=' . $target_plugin_name;
-                }, $link);
-
+                $link = preg_replace_callback(
+                    '/pname=([^&]+)/i',
+                    static fn (array $matches): string => 'pname=' . $target_plugin_name,
+                    $link
+                );
             } else {
                 $link .= 'pname=' . $target_plugin_name;
             }
@@ -148,7 +151,7 @@ class ilPowerBiReportingProviderConfigGUI extends ilPluginConfigGUI
         $ignoreNotAttempted->setValue('1');
         $form->addItem($ignoreNotAttempted);
 
-        $form->addCommandButton("save", $this->plugin->txt("save"));
+        $form->addCommandButton('save', $this->plugin->txt('save'));
         $form->setFormAction($this->ctrl->getFormAction($this));
 
         return $form;
