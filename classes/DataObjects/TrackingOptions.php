@@ -220,7 +220,7 @@ class TrackingOptions
                     $func_name = $this->getSetterByKeyword($option['keyword']);
                     try {
                         if (!$tOption->load($option['id'])) {
-                            $tOption->setId($option['id'])
+                            $tOption->setId((int) $option['id'])
                                 ->setKeyword($option['keyword'])
                                 ->setActive((int) $option['active'] === 1)
                                 ->setFieldName($option['field_name'])

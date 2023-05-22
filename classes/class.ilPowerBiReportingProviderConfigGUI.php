@@ -129,21 +129,23 @@ class ilPowerBiReportingProviderConfigGUI extends ilPluginConfigGUI
         $trackingOptions->load();
         foreach ($trackingOptions->getAvailableOptions() as $keyword) {
             $option = $trackingOptions->getOptionByKeyword($keyword);
-            if (isset($option)) {
-                $cb = new ilCheckboxInputGUI($this->plugin->txt($keyword), $keyword);
-                $cb->setInfo($this->plugin->txt($keyword . '_info'));
-                $cb->setValue('1');
-                $cb->setChecked($option->isActive());
-                if (in_array($keyword, ['id', 'timestamp'])) {
-                    $cb->setDisabled(true);
-                }
-                $sub_ti = new ilTextInputGUI($this->plugin->txt($keyword . '_name'), $keyword . '_name');
-                $sub_ti->setInfo($this->plugin->txt($keyword . '_name_info'));
-                $sub_ti->setValue($option->getFieldName());
-
-                $cb->addSubItem($sub_ti);
-                $form->addItem($cb);
+            if ($option === null) {
+                continue;
             }
+
+            $cb = new ilCheckboxInputGUI($this->plugin->txt($keyword), $keyword);
+            $cb->setInfo($this->plugin->txt($keyword . '_info'));
+            $cb->setValue('1');
+            $cb->setChecked($option->isActive());
+            if (in_array($keyword, ['id', 'timestamp'])) {
+                $cb->setDisabled(true);
+            }
+            $sub_ti = new ilTextInputGUI($this->plugin->txt($keyword . '_name'), $keyword . '_name');
+            $sub_ti->setInfo($this->plugin->txt($keyword . '_name_info'));
+            $sub_ti->setValue($option->getFieldName());
+
+            $cb->addSubItem($sub_ti);
+            $form->addItem($cb);
         }
 
         $ignoreNotAttempted = new ilCheckboxInputGUI($this->plugin->txt('ignoreNotAttempted'), 'ignoreNotAttempted');
@@ -165,16 +167,21 @@ class ilPowerBiReportingProviderConfigGUI extends ilPluginConfigGUI
 
         if ($form->checkInput()) {
             foreach ($trackingOptions->getAvailableOptions() as $keyword) {
-                $opt = $trackingOptions->getOptionByKeyword($keyword);
+                $option = $trackingOptions->getOptionByKeyword($keyword);
+                if ($option === null) {
+                    continue;
+                }
+
                 if ($form->getInput($keyword)) {
-                    $opt->setActive(true);
+                    $option->setActive(true);
                 } elseif (!in_array($keyword, ['id', 'timestamp'], true)) {
-                    $opt->setActive(false);
+                    $option->setActive(false);
                 }
+
                 if ($form->getInput($keyword . '_name')) {
-                    $opt->setFieldName($form->getInput($keyword . '_name'));
+                    $option->setFieldName($form->getInput($keyword . '_name'));
                 }
-                $opt->save();
+                $option->save();
             }
 
             if ($form->getInput('export_path')) {

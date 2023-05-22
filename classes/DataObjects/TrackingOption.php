@@ -18,174 +18,119 @@
 
 namespace QU\PowerBiReportingProvider\DataObjects;
 
+use ilDBConstants;
+
 class TrackingOption extends DataObject
 {
     protected string $use_table = 'powbi_prov_options';
     protected string $use_index = 'id';
 
-    /** @var int */
-    private $id;
+    private ?int $id = null;
+    private ?string $keyword = null;
+    private bool $active = false;
+    private ?string $field_name = null;
+    private ?int $updated_at = null;
 
-    /** @var string */
-    private $keyword;
-
-    /** @var bool */
-    private $active;
-
-    /** @var string */
-    private $field_name;
-
-    /** @var int */
-    private $updated_at;
-
-    /**
-     * @return int
-     */
-    public function getId(): int
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * @param int $id
-     * @return TrackingOption
-     */
-    public function setId(int $id): TrackingOption
+    public function setId(int $id): self
     {
-        if (!isset($this->id)) {
-            $this->id = $id;
-        }
+        $this->id = $id;
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getKeyword(): string
+    public function getKeyword(): ?string
     {
         return $this->keyword;
     }
 
-    /**
-     * @param string $keyword
-     * @return TrackingOption
-     */
-    public function setKeyword(string $keyword): TrackingOption
+    public function setKeyword(string $keyword): self
     {
         $this->keyword = $keyword;
         return $this;
     }
 
-    /**
-     * @return bool
-     */
     public function isActive(): bool
     {
         return $this->active;
     }
 
-    /**
-     * @param bool $active
-     * @return TrackingOption
-     */
-    public function setActive(bool $active): TrackingOption
+    public function setActive(bool $active): self
     {
         $this->active = $active;
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getFieldName(): string
+    public function getFieldName(): ?string
     {
         return $this->field_name;
     }
 
-    /**
-     * @param string $field_name
-     * @return TrackingOption
-     */
-    public function setFieldName(string $field_name): TrackingOption
+    public function setFieldName(string $field_name): self
     {
         $this->field_name = $field_name;
         return $this;
     }
 
-    /**
-     * @return int
-     */
-    public function getUpdatedAt(): int
+    public function getUpdatedAt(): ?int
     {
         return $this->updated_at;
     }
 
-    /**
-     * @param int $updated_at
-     * @return TrackingOption
-     */
-    public function setUpdatedAt(int $updated_at): TrackingOption
+    public function setUpdatedAt(int $updated_at): self
     {
         $this->updated_at = $updated_at;
         return $this;
     }
 
 
-    /**
-     * @inheritDoc
-     *
-     * The id must be given at this point
-     */
     public function load(int $id = null): bool
     {
-        if (isset($id)) {
+        if (is_int($id) && $id > 0) {
             $data = $this->_loadById($id);
 
-            if (!empty($data)) {
-                $this->id = $data['id'];
+            if (is_array($data) && $data !== []) {
+                $this->id = (int) $data['id'];
                 $this->setKeyword($data['keyword']);
-                $this->setActive(($data['active'] == true));
+                $this->setActive((int) $data['active'] === 1);
                 $this->setFieldName($data['field_name']);
-                $this->setUpdatedAt($data['updated_at']);
+                $this->setUpdatedAt((int) $data['updated_at']);
                 return true;
             }
         }
+
         return false;
     }
 
-    /**
-     * @return bool
-     */
     public function save(): bool
     {
         $fields = [
             'keyword',
             'active',
             'field_name',
-            'updated_at',
+            'updated_at'
         ];
         $types = [
-            'text',
-            'integer',
-            'text',
-            'integer',
+            ilDBConstants::T_TEXT,
+            ilDBConstants::T_INTEGER,
+            ilDBConstants::T_TEXT,
+            ilDBConstants::T_INTEGER
         ];
         $values = [
             $this->getKeyword(),
-            ($this->isActive() == true ? 1 : 0),
+            $this->isActive() ? 1 : 0,
             $this->getFieldName(),
-            time(),
+            time()
         ];
 
         return $this->_update($fields, $types, $values, $this->id);
     }
 
-    /**
-     * @return bool
-     */
     public function remove(): bool
     {
         return false;
     }
-
 }
