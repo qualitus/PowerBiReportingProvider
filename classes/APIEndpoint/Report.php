@@ -91,13 +91,13 @@ class Report
             $filter->setAssignment($params['assignment']);
         }
         if (isset($params['start'])) {
-            $filter->setPageStart($params['start']);
+            $filter->setPageStart((int) $params['start']);
         }
         if (isset($params['limit'])) {
-            $filter->setPageLength($params['limit']);
+            $filter->setPageLength((int) $params['limit']);
         }
         if (isset($params['negative_pager'])) {
-            $filter->setNegativePager($params['negative_pager']);
+            $filter->setNegativePager((bool) $params['negative_pager']);
         }
 
         return $filter;
