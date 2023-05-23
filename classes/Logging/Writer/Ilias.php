@@ -29,7 +29,6 @@ class ILIAS extends Base
     private ilLogger $aggregatedLogger;
     private int $logLevel;
     private Logging\TraceProcessor $processor;
-    protected bool $shutdown_handled = false;
 
     public function __construct(ilLogger $log, int $logLevel)
     {
@@ -94,6 +93,5 @@ class ILIAS extends Base
     public function shutdown(): void
     {
         unset($this->aggregatedLogger);
-        $this->shutdown_handled = true;
     }
 }

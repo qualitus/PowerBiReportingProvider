@@ -25,7 +25,7 @@ use ilLoggingSettings;
 
 class Settings implements ilLoggingSettings
 {
-    private int $level ;
+    private int $level;
     private int $cache_level;
     private string $directory;
     private string $file;
