@@ -20,7 +20,6 @@ if (class_exists(\LCAutoloader::class)) {
     return;
 }
 
-
 class LCAutoloader
 {
     /** @var array<string, list<string>> */
