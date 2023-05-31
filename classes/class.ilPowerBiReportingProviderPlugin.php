@@ -1,10 +1,25 @@
 <?php
-/* Copyright (c) 1998-2011 ILIAS open source, Extended GPL, see docs/LICENSE */
 
-require_once("./Services/Cron/classes/class.ilCronHookPlugin.php");
+/**
+ * This file is part of ILIAS, a powerful learning management system
+ * published by ILIAS open source e-Learning e.V.
+ *
+ * ILIAS is licensed with the GPL-3.0,
+ * see https://www.gnu.org/licenses/gpl-3.0.en.html
+ * You should have received a copy of said license along with the
+ * source code, too.
+ *
+ * If this is not the case or you just want to try ILIAS, you'll find
+ * us at:
+ * https://www.ilias.de
+ * https://github.com/ILIAS-eLearning
+ *
+ *********************************************************************/
 
+use ILIAS\DI\Container;
 use QU\PowerBiReportingProvider\Lock\PidBasedLocker;
 use QU\PowerBiReportingProvider\Logging\Log;
+use QU\PowerBiReportingProvider\Logging\Logger;
 use QU\PowerBiReportingProvider\Logging\Settings as LogSettings;
 use QU\PowerBiReportingProvider\Logging\Writer\Ilias;
 use QU\PowerBiReportingProvider\Logging\Writer\Gilo;
@@ -13,229 +28,247 @@ use QU\PowerBiReportingProvider\Task\ReportingProvider;
 
 class ilPowerBiReportingProviderPlugin extends \ilCronHookPlugin
 {
-	const PLUGIN_ID = "powbi_rep_prov";
-	const PLUGIN_NAME = "PowerBiReportingProvider";
-	const PLUGIN_SETTINGS = "qu_crnhk_powbi_rep_prov";
-	const PLUGIN_NS = 'QU\PowerBiReportingProvider';
+    private const CTYPE = 'Services';
+    private const CNAME = 'Cron';
+    private const SLOT_ID = 'crnhk';
+    public const PLUGIN_ID = 'powbi_rep_prov';
+    public const PLUGIN_NAME = 'PowerBiReportingProvider';
+    public const PLUGIN_SETTINGS = 'qu_crnhk_powbi_rep_prov';
+    public const PLUGIN_NS = 'QU\PowerBiReportingProvider';
 
-	/** @var ilPowerBiReportingProviderPlugin */
-	protected static $instance;
+    private static ?self $instance = null;
+    /** @var array<string, array<string, array<string, bool>>> */
+    private static array $activePluginsCheckCache = [];
+    /** @var array<string, array<string, array<string, ilPlugin>>> */
+    private static array $activePluginsCache = [];
 
-	/** @var \ilSetting */
-	protected $settings;
+    private ilSetting $settings;
+    private Container $dic;
 
-	/** @var array */
-	protected $jobs;
+    public function __construct(
+        ilDBInterface $db,
+        ilComponentRepositoryWrite $component_repository,
+        string $id
+    ) {
+        global $DIC;
 
-	/**
-	 * @return void
-	 */
-	protected function init()
-	{
-		self::registerAutoloader();
+        $this->dic = $DIC;
 
-		global $DIC;
+        parent::__construct($db, $component_repository, $id);
 
-		if(!isset($DIC['plugin.powbi.export.logger.writer.ilias'])) {
-			$GLOBALS['DIC']['plugin.powbi.export.logger.writer.ilias'] = function (Pimple\Container $c) {
-				$logLevel = \ilLoggingDBSettings::getInstance()->getLevel();
+        $this->settings = new ilSetting(self::PLUGIN_SETTINGS);
+    }
 
-				return new Ilias($c['ilLog'], $logLevel);
-			};
-		}
+    public static function getInstance(): self
+    {
+        global $DIC;
 
-		if(!isset($DIC['plugin.powbi.export.cronjob.logger'])) {
-			$GLOBALS['DIC']['plugin.powbi.export.cronjob.logger'] = function (Pimple\Container $c) {
-//			global $DIC;
-				$logger = new Log();
+        if (self::$instance instanceof self) {
+            return self::$instance;
+        }
 
-				$logger->addWriter(new StdOut());
-				$logger->addWriter($c['plugin.powbi.export.logger.writer.ilias']);
+        /** @var ilComponentRepository $component_repository */
+        $component_repository = $DIC['component.repository'];
+        /** @var ilComponentFactory $component_factory */
+        $component_factory = $DIC['component.factory'];
 
-				$tempDirectory = \ilUtil::ilTempnam();
-				\ilUtil::makeDir($tempDirectory);
-//			$DIC->filesystem()->temp()->createDir($tempDirectory);
-				$now = new \DateTimeImmutable();
-				$settings = new LogSettings($tempDirectory, 'powbi_rep_prov_' . $now->format('Y_m_d_H_i_s') . '.log');
-				$logger->addWriter(new Gilo($settings));
+        $plugin_info = $component_repository->getComponentByTypeAndName(
+            self::CTYPE,
+            self::CNAME
+        )->getPluginSlotById(self::SLOT_ID)->getPluginByName(self::PLUGIN_NAME);
 
-				return $logger;
-			};
-		}
+        self::$instance = $component_factory->getPlugin($plugin_info->getId());
 
-		if(!isset($DIC['plugin.powbi.export.web.logger'])) {
-			$GLOBALS['DIC']['plugin.powbi.export.web.logger'] = function (Pimple\Container $c) {
-				$logger = new Log();
+        return self::$instance;
+    }
 
-				$logger->addWriter($c['plugin.powbi.export.logger.writer.ilias']);
+    protected function init(): void
+    {
+        $this->registerAutoloader();
 
-				return $logger;
-			};
-		}
+        if (!isset($this->dic['plugin.powbi.export.logger.writer.ilias'])) {
+            $this->dic['plugin.powbi.export.logger.writer.ilias'] = static function (Container $c): \QU\PowerBiReportingProvider\Logging\Writer {
+                $logLevel = ilLoggingDBSettings::getInstance()->getLevel();
 
-		if(!isset($DIC['plugin.powbi.cronjob.locker'])) {
-			$GLOBALS['DIC']['plugin.powbi.cronjob.locker'] = function (Pimple\Container $c) {
-				return new PidBasedLocker(
-					new \ilSetting($this->getPluginName()),
-					$c['plugin.powbi.export.cronjob.logger']
-				);
-			};
-		}
+                return new Ilias($c->logger()->root(), $logLevel);
+            };
+        }
 
-		$this->jobs = $this->getCronJobInstances();
-	}
+        if (!isset($this->dic['plugin.powbi.export.cronjob.logger'])) {
+            $this->dic['plugin.powbi.export.cronjob.logger'] = static function (Container $c): \QU\PowerBiReportingProvider\Logging\Logger {
+                $logger = new Log();
 
-	/**
-	 * @return ilPowerBiReportingProviderPlugin
-	 */
-	public static function getInstance()
-	{
-		if (self::$instance === NULL) {
-			self::$instance = new self();
-		}
+                $logger->addWriter(new StdOut());
+                $logger->addWriter($c['plugin.powbi.export.logger.writer.ilias']);
 
-		return self::$instance;
-	}
+                $tempDirectory = ilFileUtils::ilTempnam();
+                ilFileUtils::makeDir($tempDirectory);
+                $now = new DateTimeImmutable();
+                $settings = new LogSettings($tempDirectory, 'powbi_rep_prov_' . $now->format('Y_m_d_H_i_s') . '.log');
+                $logger->addWriter(new Gilo($settings));
 
-	/**
-	 * @return void
-	 */
-	public static function registerAutoloader()
-	{
-		global $DIC;
+                return $logger;
+            };
+        }
 
-		if(!isset($DIC['autoload.lc.lcautoloader'])) {
-			require_once(realpath(dirname(__FILE__)) . '/Autoload/LCAutoloader.php');
-			$Autoloader = new LCAutoloader();
-			$Autoloader->register();
-			$Autoloader->addNamespace('ILIAS\Plugin', '/Customizing/global/plugins');
-			$DIC['autoload.lc.lcautoloader'] = $Autoloader;
-		}
-		$DIC['autoload.lc.lcautoloader']->addNamespace(self::PLUGIN_NS, realpath(dirname(__FILE__)));
-	}
+        if (!isset($this->dic['plugin.powbi.export.web.logger'])) {
+            $this->dic['plugin.powbi.export.web.logger'] = static function (Container $c): \QU\PowerBiReportingProvider\Logging\Logger {
+                $logger = new Log();
 
-	/**
-	 * ilPowerBiReportingProviderPlugin constructor.
-	 */
-	public function __construct() {
-		parent::__construct();
+                $logger->addWriter($c['plugin.powbi.export.logger.writer.ilias']);
 
-		global $DIC;
+                return $logger;
+            };
+        }
 
-		$this->db = $DIC->database();
-		$this->settings = new ilSetting(self::PLUGIN_SETTINGS);
-	}
+        if (!isset($this->dic['plugin.powbi.cronjob.locker'])) {
+            $this->dic['plugin.powbi.cronjob.locker'] = fn (Container $c): \QU\PowerBiReportingProvider\Lock\Locker => new PidBasedLocker(
+                new ilSetting($this->getPluginName()),
+                $c['plugin.powbi.export.cronjob.logger']
+            );
+        }
+    }
 
-	/**
-	 * @return string
-	 */
-	public function getPluginName() {
-		return self::PLUGIN_NAME;
-	}
+    private function registerAutoloader(): void
+    {
+        require_once __DIR__ . '/../vendor/autoload.php';
 
-	/**
-	 * @return \ilSetting
-	 */
-	public function getSettings(): ilSetting
-	{
-		return $this->settings;
-	}
+        if (!isset($this->dic['autoload.lc.lcautoloader'])) {
+            $Autoloader = new LCAutoloader();
+            $Autoloader->register();
+            $Autoloader->addNamespace('ILIAS\Plugin', '/Customizing/global/plugins');
+            $this->dic['autoload.lc.lcautoloader'] = static fn (\ILIAS\DI\Container $c): LCAutoloader => $Autoloader;
+        }
 
-	/**
-	 * @return array
-	 */
-	function getCronJobInstances()
-	{
-		// get array with all jobs
-		$this->jobs = [];
-		$job = new ReportingProvider(
-			$this,
-			$GLOBALS['DIC']['plugin.powbi.cronjob.locker'],
-			$GLOBALS['DIC']['plugin.powbi.export.cronjob.logger'],
-			new ilSetting()
-		);
-		$this->jobs[$job->getId()] = $job;
-		return $this->jobs;
-	}
+        $this->dic['autoload.lc.lcautoloader']->addNamespace(self::PLUGIN_NS, realpath(__DIR__));
+    }
 
-	/**
-	 * @param $a_job_id
-	 * @return mixed
-	 * @throws Exception
-	 */
-	function getCronJobInstance($a_job_id)
-	{
-		// get specific job by id
-		if(array_key_exists($a_job_id, $this->jobs)) {
-			return $this->jobs[$a_job_id];
-		}
-		\ilUtil::sendFailure('ERROR: Unknown job called: ' . $a_job_id, true);
-		return [];
-	}
+    public function getPluginName(): string
+    {
+        return self::PLUGIN_NAME;
+    }
 
-	/**
-	 * @return void
-	 */
-	protected function afterActivation() {
-		global $DIC;
-		self::registerAutoloader();
-		// check if api is initialized
-		if(!isset($DIC['qu.lerq.api'])) {
-			\ilPluginAdmin::getPluginObject(
-				"Services",
-				"Cron",
-				"crnhk",
-				"LpEventReportQueue"
-			);
-			if(!isset($DIC['qu.lerq.api'])) {
-				$DIC->logger()->root()->error('Could not init LpEventReportQueue API');
-				return;
-			}
-		}
-		// register provider
-		/** @var \QU\LERQ\API\API */
-		$DIC['qu.lerq.api']->registerProvider(
-			self::PLUGIN_NAME,
-			self::PLUGIN_NS,
-			realpath(dirname(__FILE__)),
-			false
-		);
-	}
+    public function getSettings(): ilSetting
+    {
+        return $this->settings;
+    }
 
-	/**
-	 * @return void
-	 */
-	protected function afterDeactivation() {
+    public function getCronJobInstances(): array
+    {
+        return [
+            new ReportingProvider(
+                $this,
+                $GLOBALS['DIC']['plugin.powbi.cronjob.locker'],
+                $GLOBALS['DIC']['plugin.powbi.export.cronjob.logger'],
+                new ilSetting()
+            )
+        ];
+    }
 
-		parent::afterDeactivation();
+    public function getCronJobInstance(string $jobId): ilCronJob
+    {
+        return new ReportingProvider(
+            $this,
+            $GLOBALS['DIC']['plugin.powbi.cronjob.locker'],
+            $GLOBALS['DIC']['plugin.powbi.export.cronjob.logger'],
+            new ilSetting()
+        );
+    }
 
-		global $DIC;
+    public function isPluginInstalled(string $component, string $slot, string $plugin_class): bool
+    {
+        if (isset(self::$activePluginsCheckCache[$component][$slot][$plugin_class])) {
+            return self::$activePluginsCheckCache[$component][$slot][$plugin_class];
+        }
 
-		if(!isset($DIC['autoload.lc.lcautoloader'])){
-			\ilPluginAdmin::getPluginObject(
-				'Services',
-				'Cron',
-				'crnhk',
-				'LpEventReportQueue'
-			);
-		}
+        /** @var ilComponentRepository $component_repository */
+        $component_repository = $this->dic['component.repository'];
 
-		// unregister provider
-		/** @var \QU\LERQ\API\API */
-		if(isset($DIC['qu.lerq.api'])){
-			$DIC['qu.lerq.api']->unregisterProvider(
-				self::PLUGIN_NAME,
-				self::PLUGIN_NS
-			);
-		}
-	}
+        $has_plugin = $component_repository->getComponentByTypeAndName(
+            'Services',
+            $component
+        )->getPluginSlotById($slot)->hasPluginName($plugin_class);
 
-	/**
-	 * @return bool
-	 */
-	protected function beforeUninstall() {
+        if ($has_plugin) {
+            $plugin_info = $component_repository->getComponentByTypeAndName(
+                'Services',
+                $component
+            )->getPluginSlotById($slot)->getPluginByName($plugin_class);
+            $has_plugin = $plugin_info->isActive();
+        }
 
-		return parent::deactivate();
-	}
+        return (self::$activePluginsCheckCache[$component][$slot][$plugin_class] = $has_plugin);
+    }
 
+    public function getPlugin(string $component, string $slot, string $plugin_class): ilPlugin
+    {
+        if (isset(self::$activePluginsCache[$component][$slot][$plugin_class])) {
+            return self::$activePluginsCache[$component][$slot][$plugin_class];
+        }
+
+        /** @var ilComponentRepository $component_repository */
+        $component_repository = $this->dic['component.repository'];
+        /** @var ilComponentFactory $component_factory */
+        $component_factory = $this->dic['component.factory'];
+
+        $plugin_info = $component_repository->getComponentByTypeAndName(
+            'Services',
+            $component
+        )->getPluginSlotById($slot)->getPluginByName($plugin_class);
+
+        $plugin = $component_factory->getPlugin($plugin_info->getId());
+
+        return (self::$activePluginsCache[$component][$slot][$plugin_class] = $plugin);
+    }
+
+    protected function afterActivation(): void
+    {
+        $this->registerAutoloader();
+
+        if (!isset($this->dic['qu.lerq.api'])) {
+            if ($this->isPluginInstalled('Cron', 'crnhk', 'LpEventReportQueue')) {
+                $plugin = $this->getPlugin('Cron', 'crnhk', 'LpEventReportQueue');
+            }
+
+            if (!isset($this->dic['qu.lerq.api'])) {
+                $this->dic->logger()->root()->error('Could not init LpEventReportQueue API');
+                return;
+            }
+        }
+
+        $this->dic['qu.lerq.api']->registerProvider(
+            self::PLUGIN_NAME,
+            self::PLUGIN_NS,
+            realpath(__DIR__),
+            false
+        );
+    }
+
+    protected function afterDeactivation(): void
+    {
+        parent::afterDeactivation();
+
+        if (!isset($this->dic['qu.lerq.api'])) {
+            if ($this->isPluginInstalled('Cron', 'crnhk', 'LpEventReportQueue')) {
+                $plugin = $this->getPlugin('Cron', 'crnhk', 'LpEventReportQueue');
+            }
+
+            if (!isset($this->dic['qu.lerq.api'])) {
+                $this->dic->logger()->root()->error('Could not init LpEventReportQueue API');
+                return;
+            }
+        }
+
+        if (isset($this->dic['qu.lerq.api'])) {
+            $this->dic['qu.lerq.api']->unregisterProvider(
+                self::PLUGIN_NAME,
+                self::PLUGIN_NS
+            );
+        }
+    }
+
+    protected function beforeUninstall(): bool
+    {
+        return $this->deactivate();
+    }
 }

@@ -1,164 +1,164 @@
 <#1>
 <?php
+/** @var ilDBInterface $ilDB */
 if (!$ilDB->tableExists('powbi_prov_index')) {
-	$ilDB->createTable('powbi_prov_index', [
-		'id' => [
-			'type' => 'integer',
-			'length' => 4,
-			'notnull' => true,
-			'default' => 0,
-		],
-		'processed' => [
-			'type' => 'integer',
-			'length' => 4,
-			'notnull' => true,
-			'default' => 0,
-		],
-		'trigger' => [
-			'type' => 'text',
-			'notnull' => true,
-			'default' => '',
-		],
-		'timestamp' => [
-			'type' => 'integer',
-			'length' => 4,
-			'notnull' => true,
-		],
-	]);
-	$ilDB->addPrimaryKey('powbi_prov_index', array('id'));
-	$ilDB->createSequence('powbi_prov_index');
+    $ilDB->createTable('powbi_prov_index', [
+        'id' => [
+            'type' => ilDBConstants::T_INTEGER,
+            'length' => 4,
+            'notnull' => true,
+            'default' => 0,
+        ],
+        'processed' => [
+            'type' => ilDBConstants::T_INTEGER,
+            'length' => 4,
+            'notnull' => true,
+            'default' => 0,
+        ],
+        'trigger' => [
+            'type' => ilDBConstants::T_TEXT,
+            'notnull' => true,
+            'default' => '',
+        ],
+        'timestamp' => [
+            'type' => ilDBConstants::T_INTEGER,
+            'length' => 4,
+            'notnull' => true,
+        ],
+    ]);
+    $ilDB->addPrimaryKey('powbi_prov_index', array('id'));
+    $ilDB->createSequence('powbi_prov_index');
 }
 
 if (!$ilDB->tableExists('powbi_prov_options')) {
-	$ilDB->createTable('powbi_prov_options', [
-		'id' => [
-			'type' => 'integer',
-			'length' => 4,
-			'notnull' => true,
-			'default' => 0,
-		],
-		'keyword' => [
-			'type' => 'text',
-			'length' => 255,
-			'notnull' => true,
-		],
-		'active' => [
-			'type' => 'integer',
-			'notnull' => true,
-			'default' => 0,
-			'length' => 1
-		],
-		'field_name' => [
-			'type' => 'text',
-			'length' => 255,
-			'notnull' => true,
-		],
-		'updated_at' => [
-			'type' => 'integer',
-			'length' => 4,
-			'notnull' => false,
-		],
-	]);
-	$ilDB->addPrimaryKey('powbi_prov_options', array('id'));
-	$ilDB->createSequence('powbi_prov_options');
+    $ilDB->createTable('powbi_prov_options', [
+        'id' => [
+            'type' => ilDBConstants::T_INTEGER,
+            'length' => 4,
+            'notnull' => true,
+            'default' => 0,
+        ],
+        'keyword' => [
+            'type' => ilDBConstants::T_TEXT,
+            'length' => 255,
+            'notnull' => true,
+        ],
+        'active' => [
+            'type' => ilDBConstants::T_INTEGER,
+            'notnull' => true,
+            'default' => 0,
+            'length' => 1
+        ],
+        'field_name' => [
+            'type' => ilDBConstants::T_TEXT,
+            'length' => 255,
+            'notnull' => true,
+        ],
+        'updated_at' => [
+            'type' => ilDBConstants::T_INTEGER,
+            'length' => 4,
+            'notnull' => false,
+        ],
+    ]);
+    $ilDB->addPrimaryKey('powbi_prov_options', array('id'));
+    $ilDB->createSequence('powbi_prov_options');
 }
 $ilDB->insert('powbi_prov_options', [
-	'id' => [ 'integer', $ilDB->nextId('powbi_prov_options'), ],
-	'keyword' => [ 'text', 'id', ],
-	'active' => [ 'integer', 1, ],
-	'field_name' => [ 'text', 'id', ],
-	'updated_at' => [ 'integer', time(), ],
+    'id' => [ilDBConstants::T_INTEGER, $ilDB->nextId('powbi_prov_options'),],
+    'keyword' => [ilDBConstants::T_TEXT, 'id',],
+    'active' => [ilDBConstants::T_INTEGER, 1,],
+    'field_name' => [ilDBConstants::T_TEXT, 'id',],
+    'updated_at' => [ilDBConstants::T_INTEGER, time(),],
 ]);
 $ilDB->insert('powbi_prov_options', [
-	'id' => [ 'integer', $ilDB->nextId('powbi_prov_options'), ],
-	'keyword' => [ 'text', 'timestamp', ],
-	'active' => [ 'integer', 1, ],
-	'field_name' => [ 'text', 'timestamp', ],
-	'updated_at' => [ 'integer', time(), ],
+    'id' => [ilDBConstants::T_INTEGER, $ilDB->nextId('powbi_prov_options'),],
+    'keyword' => [ilDBConstants::T_TEXT, 'timestamp',],
+    'active' => [ilDBConstants::T_INTEGER, 1,],
+    'field_name' => [ilDBConstants::T_TEXT, 'timestamp',],
+    'updated_at' => [ilDBConstants::T_INTEGER, time(),],
 ]);
 $ilDB->insert('powbi_prov_options', [
-	'id' => [ 'integer', $ilDB->nextId('powbi_prov_options'), ],
-	'keyword' => [ 'text', 'trigger', ],
-	'active' => [ 'integer', 1, ],
-	'field_name' => [ 'text', 'trigger', ],
-	'updated_at' => [ 'integer', time(), ],
+    'id' => [ilDBConstants::T_INTEGER, $ilDB->nextId('powbi_prov_options'),],
+    'keyword' => [ilDBConstants::T_TEXT, 'trigger',],
+    'active' => [ilDBConstants::T_INTEGER, 1,],
+    'field_name' => [ilDBConstants::T_TEXT, 'trigger',],
+    'updated_at' => [ilDBConstants::T_INTEGER, time(),],
 ]);
 $ilDB->insert('powbi_prov_options', [
-	'id' => [ 'integer', $ilDB->nextId('powbi_prov_options'), ],
-	'keyword' => [ 'text', 'progress', ],
-	'active' => [ 'integer', 1, ],
-	'field_name' => [ 'text', 'progress', ],
-	'updated_at' => [ 'integer', time(), ],
+    'id' => [ilDBConstants::T_INTEGER, $ilDB->nextId('powbi_prov_options'),],
+    'keyword' => [ilDBConstants::T_TEXT, 'progress',],
+    'active' => [ilDBConstants::T_INTEGER, 1,],
+    'field_name' => [ilDBConstants::T_TEXT, 'progress',],
+    'updated_at' => [ilDBConstants::T_INTEGER, time(),],
 ]);
 $ilDB->insert('powbi_prov_options', [
-	'id' => [ 'integer', $ilDB->nextId('powbi_prov_options'), ],
-	'keyword' => [ 'text', 'assignment', ],
-	'active' => [ 'integer', 1, ],
-	'field_name' => [ 'text', 'assignment', ],
-	'updated_at' => [ 'integer', time(), ],
+    'id' => [ilDBConstants::T_INTEGER, $ilDB->nextId('powbi_prov_options'),],
+    'keyword' => [ilDBConstants::T_TEXT, 'assignment',],
+    'active' => [ilDBConstants::T_INTEGER, 1,],
+    'field_name' => [ilDBConstants::T_TEXT, 'assignment',],
+    'updated_at' => [ilDBConstants::T_INTEGER, time(),],
 ]);
 $ilDB->insert('powbi_prov_options', [
-	'id' => [ 'integer', $ilDB->nextId('powbi_prov_options'), ],
-	'keyword' => [ 'text', 'obj_type', ],
-	'active' => [ 'integer', 1, ],
-	'field_name' => [ 'text', 'objectType', ],
-	'updated_at' => [ 'integer', time(), ],
+    'id' => [ilDBConstants::T_INTEGER, $ilDB->nextId('powbi_prov_options'),],
+    'keyword' => [ilDBConstants::T_TEXT, 'obj_type',],
+    'active' => [ilDBConstants::T_INTEGER, 1,],
+    'field_name' => [ilDBConstants::T_TEXT, 'objectType',],
+    'updated_at' => [ilDBConstants::T_INTEGER, time(),],
 ]);
 $ilDB->insert('powbi_prov_options', [
-	'id' => [ 'integer', $ilDB->nextId('powbi_prov_options'), ],
-	'keyword' => [ 'text', 'obj_title', ],
-	'active' => [ 'integer', 1, ],
-	'field_name' => [ 'text', 'objectTitle', ],
-	'updated_at' => [ 'integer', time(), ],
+    'id' => [ilDBConstants::T_INTEGER, $ilDB->nextId('powbi_prov_options'),],
+    'keyword' => [ilDBConstants::T_TEXT, 'obj_title',],
+    'active' => [ilDBConstants::T_INTEGER, 1,],
+    'field_name' => [ilDBConstants::T_TEXT, 'objectTitle',],
+    'updated_at' => [ilDBConstants::T_INTEGER, time(),],
 ]);
 $ilDB->insert('powbi_prov_options', [
-	'id' => [ 'integer', $ilDB->nextId('powbi_prov_options'), ],
-	'keyword' => [ 'text', 'refid', ],
-	'active' => [ 'integer', 1, ],
-	'field_name' => [ 'text', 'objectRefId', ],
-	'updated_at' => [ 'integer', time(), ],
+    'id' => [ilDBConstants::T_INTEGER, $ilDB->nextId('powbi_prov_options'),],
+    'keyword' => [ilDBConstants::T_TEXT, 'refid',],
+    'active' => [ilDBConstants::T_INTEGER, 1,],
+    'field_name' => [ilDBConstants::T_TEXT, 'objectRefId',],
+    'updated_at' => [ilDBConstants::T_INTEGER, time(),],
 ]);
 $ilDB->insert('powbi_prov_options', [
-	'id' => [ 'integer', $ilDB->nextId('powbi_prov_options'), ],
-	'keyword' => [ 'text', 'link', ],
-	'active' => [ 'integer', 1, ],
-	'field_name' => [ 'text', 'objectUrl', ],
-	'updated_at' => [ 'integer', time(), ],
+    'id' => [ilDBConstants::T_INTEGER, $ilDB->nextId('powbi_prov_options'),],
+    'keyword' => [ilDBConstants::T_TEXT, 'link',],
+    'active' => [ilDBConstants::T_INTEGER, 1,],
+    'field_name' => [ilDBConstants::T_TEXT, 'objectUrl',],
+    'updated_at' => [ilDBConstants::T_INTEGER, time(),],
 ]);
 $ilDB->insert('powbi_prov_options', [
-	'id' => [ 'integer', $ilDB->nextId('powbi_prov_options'), ],
-	'keyword' => [ 'text', 'parent_title', ],
-	'active' => [ 'integer', 1, ],
-	'field_name' => [ 'text', 'objectParentCrsTitle', ],
-	'updated_at' => [ 'integer', time(), ],
+    'id' => [ilDBConstants::T_INTEGER, $ilDB->nextId('powbi_prov_options'),],
+    'keyword' => [ilDBConstants::T_TEXT, 'parent_title',],
+    'active' => [ilDBConstants::T_INTEGER, 1,],
+    'field_name' => [ilDBConstants::T_TEXT, 'objectParentCrsTitle',],
+    'updated_at' => [ilDBConstants::T_INTEGER, time(),],
 ]);
 $ilDB->insert('powbi_prov_options', [
-	'id' => [ 'integer', $ilDB->nextId('powbi_prov_options'), ],
-	'keyword' => [ 'text', 'parent_refid', ],
-	'active' => [ 'integer', 1, ],
-	'field_name' => [ 'text', 'objectParentCrsRefId', ],
-	'updated_at' => [ 'integer', time(), ],
+    'id' => [ilDBConstants::T_INTEGER, $ilDB->nextId('powbi_prov_options'),],
+    'keyword' => [ilDBConstants::T_TEXT, 'parent_refid',],
+    'active' => [ilDBConstants::T_INTEGER, 1,],
+    'field_name' => [ilDBConstants::T_TEXT, 'objectParentCrsRefId',],
+    'updated_at' => [ilDBConstants::T_INTEGER, time(),],
 ]);
 $ilDB->insert('powbi_prov_options', [
-	'id' => [ 'integer', $ilDB->nextId('powbi_prov_options'), ],
-	'keyword' => [ 'text', 'user_mail', ],
-	'active' => [ 'integer', 1, ],
-	'field_name' => [ 'text', 'userEmailAddress', ],
-	'updated_at' => [ 'integer', time(), ],
+    'id' => [ilDBConstants::T_INTEGER, $ilDB->nextId('powbi_prov_options'),],
+    'keyword' => [ilDBConstants::T_TEXT, 'user_mail',],
+    'active' => [ilDBConstants::T_INTEGER, 1,],
+    'field_name' => [ilDBConstants::T_TEXT, 'userEmailAddress',],
+    'updated_at' => [ilDBConstants::T_INTEGER, time(),],
 ]);
 $ilDB->insert('powbi_prov_options', [
-	'id' => [ 'integer', $ilDB->nextId('powbi_prov_options'), ],
-	'keyword' => [ 'text', 'user_id', ],
-	'active' => [ 'integer', 1, ],
-	'field_name' => [ 'text', 'userId', ],
-	'updated_at' => [ 'integer', time(), ],
+    'id' => [ilDBConstants::T_INTEGER, $ilDB->nextId('powbi_prov_options'),],
+    'keyword' => [ilDBConstants::T_TEXT, 'user_id',],
+    'active' => [ilDBConstants::T_INTEGER, 1,],
+    'field_name' => [ilDBConstants::T_TEXT, 'userId',],
+    'updated_at' => [ilDBConstants::T_INTEGER, time(),],
 ]);
 $ilDB->insert('powbi_prov_options', [
-	'id' => [ 'integer', $ilDB->nextId('powbi_prov_options'), ],
-	'keyword' => [ 'text', 'user_login', ],
-	'active' => [ 'integer', 1, ],
-	'field_name' => [ 'text', 'userLogin', ],
-	'updated_at' => [ 'integer', time(), ],
+    'id' => [ilDBConstants::T_INTEGER, $ilDB->nextId('powbi_prov_options'),],
+    'keyword' => [ilDBConstants::T_TEXT, 'user_login',],
+    'active' => [ilDBConstants::T_INTEGER, 1,],
+    'field_name' => [ilDBConstants::T_TEXT, 'userLogin',],
+    'updated_at' => [ilDBConstants::T_INTEGER, time(),],
 ]);
-
 ?>

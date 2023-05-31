@@ -1,58 +1,51 @@
 <?php
-/* Copyright (c) 1998-2019 ILIAS open source, Extended GPL, see docs/LICENSE */
+
+/**
+ * This file is part of ILIAS, a powerful learning management system
+ * published by ILIAS open source e-Learning e.V.
+ *
+ * ILIAS is licensed with the GPL-3.0,
+ * see https://www.gnu.org/licenses/gpl-3.0.en.html
+ * You should have received a copy of said license along with the
+ * source code, too.
+ *
+ * If this is not the case or you just want to try ILIAS, you'll find
+ * us at:
+ * https://www.ilias.de
+ * https://github.com/ILIAS-eLearning
+ *
+ *********************************************************************/
+
+declare(strict_types=1);
 
 namespace QU\PowerBiReportingProvider\Task;
 
-require_once 'Services/Cron/classes/class.ilCronJob.php';
+use ilCronJob;
 
-/**
- * Class BaseTask
- * @package QU\PowerBiReportingProvider\Task
- * @author Ralph Dittrich <dittrich@qualitus.de>
- */
-abstract class BaseTask extends \ilCronJob
+abstract class BaseTask extends ilCronJob
 {
-	/**
-	 * @inheritdoc
-	 */
-	public function hasAutoActivation()
-	{
-		return true;
-	}
+    public function hasAutoActivation(): bool
+    {
+        return true;
+    }
 
-	/**
-	 * @inheritdoc
-	 */
-	public function hasFlexibleSchedule()
-	{
-		return true;
-	}
+    public function hasFlexibleSchedule(): bool
+    {
+        return true;
+    }
 
-	/**
-	 * @inheritdoc
-	 */
-	public function getDefaultScheduleType()
-	{
-		return self::SCHEDULE_TYPE_DAILY;
-	}
+    public function getDefaultScheduleType(): int
+    {
+        return self::SCHEDULE_TYPE_DAILY;
+    }
 
-	/**
-	 * @inheritdoc
-	 */
-	public function getDefaultScheduleValue()
-	{
-		return 1;
-	}
+    public function getDefaultScheduleValue(): ?int
+    {
+        return 1;
+    }
 
-	/**
-	 * @inheritdoc
-	 */
-	public function isManuallyExecutable()
-	{
-		if(defined('DEVMODE') && DEVMODE) {
-			return true;
-		}
-
-		return false;
-	}
+    public function isManuallyExecutable(): bool
+    {
+        return defined('DEVMODE') && DEVMODE;
+    }
 }

@@ -1,86 +1,55 @@
 <?php
-/* Copyright (c) 1998-2019 ILIAS open source, Extended GPL, see docs/LICENSE */
+
+/**
+ * This file is part of ILIAS, a powerful learning management system
+ * published by ILIAS open source e-Learning e.V.
+ *
+ * ILIAS is licensed with the GPL-3.0,
+ * see https://www.gnu.org/licenses/gpl-3.0.en.html
+ * You should have received a copy of said license along with the
+ * source code, too.
+ *
+ * If this is not the case or you just want to try ILIAS, you'll find
+ * us at:
+ * https://www.ilias.de
+ * https://github.com/ILIAS-eLearning
+ *
+ *********************************************************************/
+
+declare(strict_types=1);
 
 namespace QU\PowerBiReportingProvider\Logging;
 
-/**
- * Class Logger
- * @author Michael Jansen <mjansen@databay.de>
- */
 interface Logger
 {
-	/**
-	 * @const int defined from the BSD Syslog message severities
-	 * @link  http://tools.ietf.org/html/rfc3164
-	 */
+    /**
+     * @const int defined from the BSD Syslog message severities
+     * @link  http://tools.ietf.org/html/rfc3164
+     */
+    public const EMERG = 0;
+    public const ALERT = 1;
+    public const CRIT = 2;
+    public const ERR = 3;
+    public const WARN = 4;
+    public const NOTICE = 5;
+    public const INFO = 6;
+    public const DEBUG = 7;
 
-	const EMERG = 0;
-	const ALERT = 1;
-	const CRIT = 2;
-	const ERR = 3;
-	const WARN = 4;
-	const NOTICE = 5;
-	const INFO = 6;
-	const DEBUG = 7;
+    public function emerg($message, array $extra = []): void;
 
-	/**
-	 * @param string $message
-	 * @param array  $extra
-	 * @return void
-	 */
-	public function emerg($message, $extra = array());
+    public function alert($message, array $extra = []): void;
 
-	/**
-	 * @param string $message
-	 * @param array  $extra
-	 * @return void
-	 */
-	public function alert($message, $extra = array());
+    public function crit($message, array $extra = []): void;
 
-	/**
-	 * @param string $message
-	 * @param array  $extra
-	 * @return void
-	 */
-	public function crit($message, $extra = array());
+    public function err($message, array $extra = []): void;
 
-	/**
-	 * @param string $message
-	 * @param array  $extra
-	 * @return void
-	 */
-	public function err($message, $extra = array());
+    public function info($message, array $extra = []): void;
 
-	/**
-	 * @param string $message
-	 * @param array
-	 * @return void
-	 */
-	public function info($message, $extra = array());
+    public function warn($message, array $extra = []): void;
 
-	/**
-	 * @param string $message
-	 * @param array  $extra
-	 * @return void
-	 */
-	public function warn($message, $extra = array());
+    public function notice($message, array $extra = []): void;
 
-	/**
-	 * @param string $message
-	 * @param array  $extra
-	 * @return void
-	 */
-	public function notice($message, $extra = array());
+    public function debug($message, array $extra = []): void;
 
-	/**
-	 * @param string $message
-	 * @param array  $extra
-	 * @return void
-	 */
-	public function debug($message, $extra = array());
-
-	/**
-	 * 
-	 */
-	public function shutdown();
+    public function shutdown(): void;
 }

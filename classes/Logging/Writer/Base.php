@@ -1,125 +1,113 @@
 <?php
-/* Copyright (c) 1998-2019 ILIAS open source, Extended GPL, see docs/LICENSE */
+
+/**
+ * This file is part of ILIAS, a powerful learning management system
+ * published by ILIAS open source e-Learning e.V.
+ *
+ * ILIAS is licensed with the GPL-3.0,
+ * see https://www.gnu.org/licenses/gpl-3.0.en.html
+ * You should have received a copy of said license along with the
+ * source code, too.
+ *
+ * If this is not the case or you just want to try ILIAS, you'll find
+ * us at:
+ * https://www.ilias.de
+ * https://github.com/ILIAS-eLearning
+ *
+ *********************************************************************/
+
+declare(strict_types=1);
 
 namespace QU\PowerBiReportingProvider\Logging\Writer;
 
 use QU\PowerBiReportingProvider\Logging;
+use DateTimeImmutable;
 
-/**
- * Class Base
- * @author Michael Jansen <mjansen@databay.de>
- */
 abstract class Base implements Logging\Writer
 {
-	const DEFAULT_FORMAT = '%timestamp% %priorityName% (%priority%): %message% %extra%';
+    public const DEFAULT_FORMAT = '%timestamp% %priorityName% (%priority%): %message% %extra%';
 
-	/**
-	 * @param array $message
-	 * @return void
-	 */
-	abstract protected function doWrite(array $message);
+    abstract protected function doWrite(array $message): void;
 
-	/**
-	 * @return string
-	 */
-	protected static function getMemoryUsageString()
-	{
-		return 'Memory: ' . self::formatBytes(\memory_get_usage(true));
-	}
+    private static function formatBytes(int $bytes): string
+    {
+        $memoryUnits = ['', 'kilobyte(s)', 'megabyte(s)', 'gigabyte(s)'];
 
-	/***
-	 * @param $bytes
-	 * @return string
-	 */
-	private static function formatBytes($bytes)
-	{
-		$memoryUnits = array('', 'kilobyte(s)', 'megabyte(s)', 'gigabyte(s)');
+        $i = 0;
+        while (1023 < $bytes) {
+            $bytes /= 1024;
+            ++$i;
+        }
 
-		$i = 0;
-		while (1023 < $bytes) {
-			$bytes /= 1024;
-			++$i;
-		}
+        return $i !== 0 ? (round($bytes, 2) . ' ' . $memoryUnits[$i]) : ($bytes . ' byte(s)');
+    }
 
-		return $i ? (\round($bytes, 2) . ' ' . $memoryUnits[$i]) : ($bytes . ' byte(s)');
-	}
+    protected static function getDateTimeFormat(): string
+    {
+        return 'y-m-d H:i:s';
+    }
 
-	/**
-	 * @return string
-	 */
-	protected static function getDateTimeFormat()
-	{
-		return 'y-m-d H:i:s';
-	}
+    /**
+     * Could be replaced by a formatter object in later releases (means: never ;-))
+     */
+    protected function format(array $message): string
+    {
+        $output = self::DEFAULT_FORMAT;
+        foreach ($message as $part => $value) {
+            if ('extra' === $part && (is_countable($value) && count($value) > 0)) {
+                $value = $this->normalize($value);
+            } elseif ('extra' === $part) {
+                // Don't print an empty array
+                $value = '';
+            } else {
+                $value = $this->normalize($value);
+            }
 
-	/**
-	 * Could be replaced by a formatter object in later releases (means: never ;-))
-	 * @param array $message
-	 * @return string
-	 */
-	protected function format(array $message)
-	{
-		$output = self::DEFAULT_FORMAT;
-		foreach ($message as $part => $value) {
-			if ('extra' == $part && \count($value)) {
-				$value = $this->normalize($value);
-			} else {
-				if ('extra' == $part) {
-					// Don't print an empty array
-					$value = '';
-				} else {
-					$value = $this->normalize($value);
-				}
-			}
-			$output = \str_replace("%$part%", $value, $output);
-		}
+            $output = str_replace("%$part%", (string) $value, $output);
+        }
 
-		return $output;
-	}
+        return $output;
+    }
 
-	/**
-	 * @param mixed $value
-	 * @return mixed
-	 */
-	protected function normalize($value)
-	{
-		if (\is_scalar($value) || null === $value) {
-			return $value;
-		}
+    /**
+     * @param mixed $value
+     * @return mixed
+     */
+    protected function normalize($value)
+    {
+        if (is_scalar($value) || null === $value) {
+            return $value;
+        }
 
-		if ($value instanceof \ilDateTime) {
-			return \date(self::getDateTimeFormat(), $value->get(IL_CAL_UNIX));
-		}
+        if ($value instanceof DateTimeImmutable) {
+            return $value->format(self::getDateTimeFormat());
+        }
 
-		if (\is_array($value)) {
-			foreach ($value as $key => $subvalue) {
-				$value[$key] = $this->normalize($subvalue);
-			}
+        if (is_array($value)) {
+            foreach ($value as $key => $subvalue) {
+                $value[$key] = $this->normalize($subvalue);
+            }
 
-			return (string)\json_encode($value);
-		}
+            return (string) json_encode($value, JSON_THROW_ON_ERROR);
+        }
 
-		if (\is_object($value) && !\method_exists($value, '__toString')) {
-			return \sprintf('object(%s) %s', \get_class($value), \json_encode($value));
-		}
+        if (is_object($value) && !method_exists($value, '__toString')) {
+            return sprintf('object(%s) %s', get_class($value), json_encode($value, JSON_THROW_ON_ERROR));
+        }
 
-		if (\is_resource($value)) {
-			return \sprintf('resource(%s)', \get_resource_type($value));
-		}
+        if (is_resource($value)) {
+            return sprintf('resource(%s)', get_resource_type($value));
+        }
 
-		if (!\is_object($value)) {
-			return \gettype($value);
-		}
+        if (!is_object($value)) {
+            return gettype($value);
+        }
 
-		return '';
-	}
+        return '';
+    }
 
-	/**
-	 * @param array $message
-	 * @return void
-	 */
-	public function write(array $message)
-	{
-		$this->doWrite($message);
-	}
+    public function write(array $message): void
+    {
+        $this->doWrite($message);
+    }
 }

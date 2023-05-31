@@ -1,253 +1,207 @@
 <?php
-/* Copyright (c) 1998-2019 ILIAS open source, Extended GPL, see docs/LICENSE */
-
-include_once("./Services/Component/classes/class.ilPluginConfigGUI.php");
-
-use \QU\PowerBiReportingProvider\DataObjects\TrackingOptions;
 
 /**
- * Class ilPowerBiReportingProviderConfigGUI
- * @author Ralph Dittrich <dittrich@qualitus.de>
+ * This file is part of ILIAS, a powerful learning management system
+ * published by ILIAS open source e-Learning e.V.
+ *
+ * ILIAS is licensed with the GPL-3.0,
+ * see https://www.gnu.org/licenses/gpl-3.0.en.html
+ * You should have received a copy of said license along with the
+ * source code, too.
+ *
+ * If this is not the case or you just want to try ILIAS, you'll find
+ * us at:
+ * https://www.ilias.de
+ * https://github.com/ILIAS-eLearning
+ *
+ *********************************************************************/
+
+declare(strict_types=1);
+
+use QU\PowerBiReportingProvider\DataObjects\TrackingOptions;
+
+/**
+ * @ilCtrl_IsCalledBy ilPowerBiReportingProviderConfigGUI: ilObjComponentSettingsGUI
  */
 class ilPowerBiReportingProviderConfigGUI extends ilPluginConfigGUI
 {
-	/** @var ilPowerBiReportingProviderPlugin */
-	private $plugin;
+    private ilPowerBiReportingProviderPlugin $plugin;
+    private ilCtrlInterface $ctrl;
+    private ilGlobalTemplateInterface $tpl;
+    private ilSetting $settings;
 
-	/** @var \ilCtrl */
-	protected $ctrl;
+    private function construct(): void
+    {
+        global $DIC;
 
-	/** @var \ilLanguage */
-	protected $lng;
+        $this->plugin = ilPowerBiReportingProviderPlugin::getInstance();
+        $this->ctrl = $DIC->ctrl();
+        $this->tpl = $DIC->ui()->mainTemplate();
+        $this->settings = $DIC->settings();
+    }
 
-	/** @var \ilTemplate */
-	protected $tpl;
+    public function performCommand(string $cmd): void
+    {
+        $this->construct();
+        switch ($cmd) {
+            case 'configure':
+                $this->configure();
+                break;
 
-	/** @var \ilTabsGUI */
-	protected $tabs;
+            default:
+                $cmd .= 'Cmd';
+                $this->{$cmd}();
+                break;
+        }
+    }
 
-	/** @var \ilSetting */
-	protected $settings;
+    private function configure(): void
+    {
+        $this->tpl->setContent($this->getConfigurationForm()->getHTML());
+    }
 
-	/** @var \ILIAS\DI\BackgroundTaskServices */
-	protected $backgroundTasks = null;
+    private function getConfigurationForm(): ilPropertyFormGUI
+    {
+        $form = new ilPropertyFormGUI();
+        $form->setTitle($this->plugin->txt('configuration_export'));
 
-	/** @var string */
-	protected $active_tab;
+        $target_plugin_id = 'lpeventreportqueue';
+        $target_plugin_name = 'lpeventreportqueue';
+        if ($this->plugin->isPluginInstalled('Cron', 'crnhk', 'LpEventReportQueue')) {
+            $link = $this->ctrl->getLinkTargetByClass([
+                ilObjComponentSettingsGUI::class
+            ], 'showPlugin', null, false, false);
 
-	/**
-	 * @return void
-	 */
-	public function construct()
-	{
-		global $DIC;
+            if (preg_match('/plugin_id=([^&]+)/i', $link) > 0) {
+                $link = preg_replace_callback(
+                    '/plugin_id=([^&]+)/i',
+                    static fn (array $matches): string => 'plugin_id=' . $target_plugin_id,
+                    $link
+                );
 
-		$this->plugin = ilPowerBiReportingProviderPlugin::getInstance();
-		$this->ctrl = $DIC->ctrl();
-		$this->lng = $DIC->language();
-		$this->tpl = $DIC["tpl"];
-		$this->tabs = $DIC->tabs();
-		$this->settings = $DIC->settings();
-		if (null === $this->backgroundTasks) {
-			$this->backgroundTasks = $DIC->backgroundTasks();
-		}
-	}
+            } else {
+                $link .= '&plugin_id=' . $target_plugin_id;
+            }
 
-	/**
-	 * @param $cmd
-	 * @return void
-	 */
-	function performCommand($cmd)
-	{
-		$this->construct();
-		$next_class = $this->ctrl->getNextClass($this);
-		$this->setTabs();
+            if (preg_match('/pname=([^&]+)/i', $link) > 0) {
+                $link = preg_replace_callback(
+                    '/pname=([^&]+)/i',
+                    static fn (array $matches): string => 'pname=' . $target_plugin_name,
+                    $link
+                );
+            } else {
+                $link .= 'pname=' . $target_plugin_name;
+            }
 
-		switch ($next_class) {
-			default:
-				switch ($cmd) {
-					case "configure":
-//						$this->tabs->activateTab('configure');
-						$this->configure();
-						break;
-					default:
-						$cmd .= 'Cmd';
-						$this->$cmd();
-						break;
-				}
-				break;
-		}
-	}
+        } else {
+            $link="#";
+        }
 
-	/**
-	 * @return void
-	 */
-	public function configure()
-	{
-		$form = $this->getConfigurationForm();
-		$this->tpl->setContent($form->getHTML());
-	}
+        $form->setDescription(
+            sprintf($this->plugin->txt('config_export_desc'), $link)
+        );
 
-	/**
-	 * @return ilPropertyFormGUI
-	 */
-	public function getConfigurationForm()
-	{
-		$form = new ilPropertyFormGUI();
-		$form->setTitle($this->plugin->txt('configuration_export'));
+        $ti = new ilTextInputGUI($this->plugin->txt('export_path'), 'export_path');
+        $ti->setInfo($this->plugin->txt('export_path_info'));
+        $ti->setRequired(true);
+        $ti->setValue($this->settings->get('export_path', '/tmp'));
+        $form->addItem($ti);
 
-		$target_plugin_id = 'lpeventreportqueue';
-		$target_plugin_name = 'lpeventreportqueue';
-		if (\ilPluginAdmin::isPluginActive($target_plugin_id) != false) {
-			$link = $this->ctrl->getLinkTargetByClass([
-				\ilObjComponentSettingsGUI::class
-			], 'showPlugin', false, false, false);
+        $ti = new ilTextInputGUI($this->plugin->txt('export_filename'), 'export_filename');
+        $ti->setInfo($this->plugin->txt('export_filename_info'));
+        $ti->setRequired(true);
+        $ti->setValue($this->settings->get('export_filename', '[Y-m-d]_powbi_export'));
+        $form->addItem($ti);
 
-			if (preg_match('/plugin_id=([^&]+)/i', $link) > 0) {
-				$link = preg_replace_callback('/plugin_id=([^&]+)/i', function (array $matches) use ($target_plugin_id) {
-					return 'plugin_id=' . $target_plugin_id;
-				}, $link);
+        $ni = new ilNumberInputGUI($this->plugin->txt('export_limit'), 'export_limit');
+        $ni->setInfo($this->plugin->txt('export_limit_info'));
+        $ni->setValue($this->settings->get('export_limit', '0'));
+        $ni->setMinValue(0);
+        $ni->setMaxValue(999);
+        $form->addItem($ni);
 
-			} else {
-				$link .= '&plugin_id=' . $target_plugin_id;
-			}
+        $trackingOptions = new TrackingOptions();
+        $trackingOptions->load();
+        foreach ($trackingOptions->getAvailableOptions() as $keyword) {
+            $option = $trackingOptions->getOptionByKeyword($keyword);
+            if ($option === null) {
+                continue;
+            }
 
-			if (preg_match('/pname=([^&]+)/i', $link) > 0) {
-				$link = preg_replace_callback('/pname=([^&]+)/i', function (array $matches) use ($target_plugin_name) {
-					return 'pname=' . $target_plugin_name;
-				}, $link);
+            $cb = new ilCheckboxInputGUI($this->plugin->txt($keyword), $keyword);
+            $cb->setInfo($this->plugin->txt($keyword . '_info'));
+            $cb->setValue('1');
+            $cb->setChecked($option->isActive());
+            if (in_array($keyword, ['id', 'timestamp'])) {
+                $cb->setDisabled(true);
+            }
+            $sub_ti = new ilTextInputGUI($this->plugin->txt($keyword . '_name'), $keyword . '_name');
+            $sub_ti->setInfo($this->plugin->txt($keyword . '_name_info'));
+            $sub_ti->setValue($option->getFieldName());
 
-			} else {
-				$link .= 'pname=' . $target_plugin_name;
-			}
+            $cb->addSubItem($sub_ti);
+            $form->addItem($cb);
+        }
 
-		} else {
-			$link="#";
-		}
-
-		$form->setDescription(
-			sprintf($this->plugin->txt('config_export_desc'), $link)
-		);
-
-		$ti = new \ilTextInputGUI($this->plugin->txt('export_path'), 'export_path');
-		$ti->setInfo($this->plugin->txt('export_path_info'));
-		$ti->setValue($this->settings->get('export_path', '/tmp'));
-		$form->addItem($ti);
-
-		$ti = new \ilTextInputGUI($this->plugin->txt('export_filename'), 'export_filename');
-		$ti->setInfo($this->plugin->txt('export_filename_info'));
-		$ti->setValue($this->settings->get('export_filename', '[Y-m-d]_powbi_export'));
-		$form->addItem($ti);
-
-		$ni = new \ilNumberInputGUI($this->plugin->txt('export_limit'), 'export_limit');
-		$ni->setInfo($this->plugin->txt('export_limit_info'));
-		$ni->setValue($this->settings->get('export_limit', 0));
-		$ni->setMinValue(0);
-		$ni->setMaxValue(999);
-		$form->addItem($ni);
-
-		$trackingOptions = new TrackingOptions();
-		$trackingOptions->load();
-		foreach ($trackingOptions->getAvailableOptions() as $keyword) {
-			$option = $trackingOptions->getOptionByKeyword($keyword);
-			if (isset($option)) {
-				$cb = new ilCheckboxInputGUI($this->plugin->txt($keyword), $keyword);
-				$cb->setInfo($this->plugin->txt($keyword . '_info'));
-				$cb->setChecked($option->isActive());
-				if (in_array($keyword, ['id', 'timestamp'])) {
-					$cb->setDisabled(true);
-				}
-				$sub_ti = new ilTextInputGUI($this->plugin->txt($keyword . '_name'), $keyword . '_name');
-				$sub_ti->setInfo($this->plugin->txt($keyword . '_name_info'));
-				$sub_ti->setValue($option->getFieldName());
-
-				$cb->addSubItem($sub_ti);
-				$form->addItem($cb);
-
-				unset($sub_ti);
-				unset($cb);
-			}
-		}
-
-		$ignoreNotAttempted = new ilCheckboxInputGUI($this->plugin->txt('ignoreNotAttempted'), 'ignoreNotAttempted');
-		$ignoreNotAttempted->setChecked((bool) $this->settings->get('ignoreNotAttempted_' . $this->plugin->getId(), ''));
+        $ignoreNotAttempted = new ilCheckboxInputGUI($this->plugin->txt('ignoreNotAttempted'), 'ignoreNotAttempted');
+        $ignoreNotAttempted->setChecked((bool) $this->settings->get('ignoreNotAttempted_' . $this->plugin->getId(), ''));
         $ignoreNotAttempted->setValue('1');
-		$form->addItem($ignoreNotAttempted);
+        $form->addItem($ignoreNotAttempted);
 
-		$form->addCommandButton("save", $this->plugin->txt("save"));
-		$form->setFormAction($this->ctrl->getFormAction($this));
+        $form->addCommandButton('save', $this->plugin->txt('save'));
+        $form->setFormAction($this->ctrl->getFormAction($this));
 
-		return $form;
-	}
+        return $form;
+    }
 
-	/**
-	 * @return void
-	 */
-	public function saveCmd()
-	{
-		$form = $this->getConfigurationForm();
-		$trackingOptions = new TrackingOptions();
-		$trackingOptions->load();
+    private function saveCmd(): void
+    {
+        $form = $this->getConfigurationForm();
+        $trackingOptions = new TrackingOptions();
+        $trackingOptions->load();
 
-		if ($form->checkInput()) {
-			// save...
-			foreach ($trackingOptions->getAvailableOptions() as $keyword) {
-				$opt = $trackingOptions->getOptionByKeyword($keyword);
-				if ($form->getInput($keyword)) {
-					$opt->setActive(true);
-				} else {
-					if (!in_array($keyword, ['id', 'timestamp'])) {
-						$opt->setActive(false);
-					}
-				}
-				if ($form->getInput($keyword . '_name')) {
-					$opt->setFieldName(($form->getInput($keyword . '_name')));
-				}
-				$opt->save();
-				unset($opt);
-			}
+        if ($form->checkInput()) {
+            foreach ($trackingOptions->getAvailableOptions() as $keyword) {
+                $option = $trackingOptions->getOptionByKeyword($keyword);
+                if ($option === null) {
+                    continue;
+                }
 
-			if ($form->getInput('export_path')) {
-				$this->settings->set('export_path', $form->getInput('export_path'));
-			}
+                if ($form->getInput($keyword)) {
+                    $option->setActive(true);
+                } elseif (!in_array($keyword, ['id', 'timestamp'], true)) {
+                    $option->setActive(false);
+                }
 
-			if ($form->getInput('export_filename')) {
-				$this->settings->set('export_filename', $form->getInput('export_filename'));
-			}
+                if ($form->getInput($keyword . '_name')) {
+                    $option->setFieldName($form->getInput($keyword . '_name'));
+                }
+                $option->save();
+            }
 
-			if ($form->getInput('export_limit') || $form->getInput('export_limit') === '0') {
-				$this->settings->set('export_limit', $form->getInput('export_limit'));
-			}
+            if ($form->getInput('export_path')) {
+                $this->settings->set('export_path', (string) $form->getInput('export_path'));
+            }
 
-			$this->settings->set('ignoreNotAttempted_' . $this->plugin->getId(), (string) ((int) $form->getInput('ignoreNotAttempted')));
+            if ($form->getInput('export_filename')) {
+                $this->settings->set('export_filename', (string) $form->getInput('export_filename'));
+            }
 
-			ilUtil::sendSuccess($this->plugin->txt("saving_invoked"), true);
-			$this->ctrl->redirect($this, "configure");
+            if ($form->getInput('export_limit') ||
+                (is_numeric($form->getInput('export_limit')) && (string) $form->getInput('export_limit') === '0')) {
+                $this->settings->set('export_limit', (string) ((int) $form->getInput('export_limit')));
+            }
 
-		} else {
-			$form->setValuesByPost();
-			$this->tpl->setContent($form->getHtml());
-		}
-	}
+            $this->settings->set(
+                'ignoreNotAttempted_' . $this->plugin->getId(),
+                (string) ((int) $form->getInput('ignoreNotAttempted'))
+            );
 
-	/**
-	 * @return array
-	 */
-	public function getTabs(): array
-	{
-		return [];
-	}
+            $this->tpl->setOnScreenMessage('success', $this->plugin->txt('saving_invoked'), true);
+            $this->ctrl->redirect($this, 'configure');
+        }
 
-	/**
-	 * @return void
-	 */
-	protected function setTabs()
-	{
-		if (!empty($this->getTabs())) {
-			foreach ($this->getTabs() as $tab) {
-				$this->tabs->addTab($tab['id'], $tab['txt'], $this->ctrl->getLinkTarget($this, $tab['cmd']));
-			}
-		}
-	}
-
+        $form->setValuesByPost();
+        $this->tpl->setContent($form->getHtml());
+    }
 }
