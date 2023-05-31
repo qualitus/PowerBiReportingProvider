@@ -43,19 +43,14 @@ class ilPowerBiReportingProviderConfigGUI extends ilPluginConfigGUI
     public function performCommand(string $cmd): void
     {
         $this->construct();
-        $next_class = $this->ctrl->getNextClass($this);
+        switch ($cmd) {
+            case 'configure':
+                $this->configure();
+                break;
 
-        switch ($next_class) {
             default:
-                switch ($cmd) {
-                    case 'configure':
-                        $this->configure();
-                        break;
-                    default:
-                        $cmd .= 'Cmd';
-                        $this->{$cmd}();
-                        break;
-                }
+                $cmd .= 'Cmd';
+                $this->{$cmd}();
                 break;
         }
     }

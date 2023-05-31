@@ -20,6 +20,7 @@ if (class_exists(\LCAutoloader::class)) {
     return;
 }
 
+
 class LCAutoloader
 {
     /** @var array<string, list<string>> */
@@ -27,17 +28,17 @@ class LCAutoloader
 
     public function register(): void
     {
-        spl_autoload_register([$this, 'loadClass']);
+        spl_autoload_register(fn (string $class) => $this->loadClass($class));
     }
 
     public function addNamespace(string $prefix, string $base_dir, bool $prepend = false): void
     {
         $prefix = trim($prefix, '\\') . '\\';
         $base_dir = rtrim($base_dir, DIRECTORY_SEPARATOR) . '/';
-        if (isset($this->prefixes[$prefix]) === false) {
+        if (!isset($this->prefixes[$prefix])) {
             $this->prefixes[$prefix] = [];
         }
-        if ($prepend === true) {
+        if ($prepend) {
             array_unshift($this->prefixes[$prefix], $base_dir);
         } else {
             $this->prefixes[$prefix][] = $base_dir;
@@ -59,7 +60,7 @@ class LCAutoloader
      */
     public function loadMappedFile(string $prefix, string $class)
     {
-        if (isset($this->prefixes[$prefix]) === false) {
+        if (!isset($this->prefixes[$prefix])) {
             return false;
         }
 

@@ -129,11 +129,7 @@ class ReportingProvider extends BaseTask
             $filter_params = [
                 'start' => $last_processed,
             ];
-            if ($export_limit > 0) {
-                $filter_params['limit'] = (int) $export_limit;
-            } else {
-                $filter_params['limit'] = -1;
-            }
+            $filter_params['limit'] = $export_limit > 0 ? (int) $export_limit : -1;
 
             if ($this->settings->get('ignoreNotAttempted_' . $this->plugin->getId(), '0')) {
                 $filter_params['excluded_progress'] = 'no_attempted';
@@ -166,7 +162,7 @@ class ReportingProvider extends BaseTask
                 $file_path = $this->resolveFilepath($export_path, $export_filename);
 
                 $status = $this->generateCsv($events['data'], $fieldnames, $file_path);
-                if ($status === false) {
+                if (!$status) {
                     $result->setMessage('Finished Job with error');
                 }
 

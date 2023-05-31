@@ -36,10 +36,9 @@ class Report
     {
         global $DIC;
 
-        if (!isset($DIC['autoload.lc.lcautoloader'])) {
-            if (ilPowerBiReportingProviderPlugin::getInstance()->isPluginInstalled('Cron', 'crnhk', 'LpEventReportQueue')) {
-                ilPowerBiReportingProviderPlugin::getInstance()->getPlugin('Cron', 'crnhk', 'LpEventReportQueue');
-            }
+        if (!isset($DIC['autoload.lc.lcautoloader']) &&
+            ilPowerBiReportingProviderPlugin::getInstance()->isPluginInstalled('Cron', 'crnhk', 'LpEventReportQueue')) {
+            ilPowerBiReportingProviderPlugin::getInstance()->getPlugin('Cron', 'crnhk', 'LpEventReportQueue');
         }
 
         /** @var \QU\LERQ\API\API $API */

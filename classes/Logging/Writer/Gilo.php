@@ -149,8 +149,6 @@ class Gilo extends Base
             );
         }
 
-        unset($this->aggregated_logger);
-
         $this->shutDownHandled = true;
     }
 

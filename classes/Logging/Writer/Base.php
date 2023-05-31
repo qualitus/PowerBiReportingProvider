@@ -39,7 +39,7 @@ abstract class Base implements Logging\Writer
             ++$i;
         }
 
-        return $i ? (round($bytes, 2) . ' ' . $memoryUnits[$i]) : ($bytes . ' byte(s)');
+        return $i !== 0 ? (round($bytes, 2) . ' ' . $memoryUnits[$i]) : ($bytes . ' byte(s)');
     }
 
     protected static function getDateTimeFormat(): string
