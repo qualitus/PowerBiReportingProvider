@@ -24,7 +24,7 @@ use QU\PowerBiReportingProvider\Logging;
 use ilLogLevel;
 use ilLogger;
 
-class ILIAS extends Base
+class Ilias extends Base
 {
     private ilLogger $aggregatedLogger;
     private int $logLevel;
